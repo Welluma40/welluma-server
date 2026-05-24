@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const fetch = require('node-fetch');
 
 const app = express();
 app.use(cors());
@@ -29,6 +28,7 @@ app.post('/analyze', async (req, res) => {
     const text = data.content?.map(b => b.text || '').join('');
     res.json(JSON.parse(text));
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: 'Analysis failed' });
   }
 });
