@@ -18,10 +18,17 @@ app.post('/analyze', async (req, res) => {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1000,
+        max_tokens: 1500,
         messages: [{
           role: 'user',
-          content: `Analyze this medical visit transcript and return ONLY a JSON object with these exact keys: summary (string), recommendations (array of strings), medications (array of strings), followUp (string), topics (array of lowercase strings - must include specific condition names mentioned such as pcos, diabetes, hypertension, thyroid, migraine, anxiety, depression, etc). No markdown, no nested objects, raw JSON only.\n\n${transcript}`
+          content: `You are a medical visit assistant. Analyze this transcript and return ONLY a raw JSON object with these exact keys:
+- summary: plain language summary string
+- recommendations: array of strings
+- medications: array of strings
+- followUp: string
+- resources: array of objects with keys "label" (friendly name) and "url" (real Mayo Clinic URL). Include 3-6 resources relevant to ALL conditions, medications, tests, and abbreviations mentioned. For example if PCOS is mentioned use https://www.mayoclinic.org/diseases-conditions/pcos/symptoms-causes/syc-20353439. If A1C is mentioned use diabetes URL. If TSH is mentioned use thyroid URL. Always use real valid mayoclinic.org URLs.
+
+Transcript: ${transcript}`
         }]
       })
     });
