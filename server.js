@@ -7,8 +7,6 @@ app.use(express.json());
 
 app.post('/analyze', async (req, res) => {
   const { transcript } = req.body;
-  console.log('Received request');
-  console.log('API Key set:', !!process.env.ANTHROPIC_API_KEY);
   
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -23,18 +21,15 @@ app.post('/analyze', async (req, res) => {
         max_tokens: 1000,
         messages: [{
           role: 'user',
-          content: `Analyze this medical visit transcript and return ONLY a JSON object with these exact keys: summary (string), recommendations (array of strings), medications (array of strings where each is just the medication name and dose), followUp (string), topics (array of strings). No markdown, no nested objects.\n\n${transcript}`
+          content: `Analyze this medical visit transcript and return ONLY a JSON object with these exact keys: summary (string), recommendations (array of strings), medications (array of strings), followUp (string), topics (array of lowercase strings - must include specific condition names mentioned such as pcos, diabetes, hypertension, thyroid, migraine, anxiety, depression, etc). No markdown, no nested objects, raw JSON only.\n\n${transcript}`
         }]
       })
     });
     
     const text = await response.text();
-    console.log('Raw response:', text);
-    
     const data = JSON.parse(text);
     
     if (data.error) {
-      console.error('API Error:', JSON.stringify(data.error));
       return res.status(500).json({ error: data.error.message });
     }
     
@@ -42,7 +37,6 @@ app.post('/analyze', async (req, res) => {
     const parsed = JSON.parse(content.replace(/```json|```/g, '').trim());
     res.json(parsed);
   } catch (error) {
-    console.error('Caught error:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
