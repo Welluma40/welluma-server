@@ -23,7 +23,7 @@ app.post('/analyze', async (req, res) => {
         max_tokens: 1000,
         messages: [{
           role: 'user',
-          content: `Analyze this medical visit transcript and return ONLY a JSON object with keys: summary, recommendations, medications, followUp, topics. No markdown.\n\n${transcript}`
+          content: `Analyze this medical visit transcript and return ONLY a JSON object with these exact keys: summary (string), recommendations (array of strings), medications (array of strings where each is just the medication name and dose), followUp (string), topics (array of strings). No markdown, no nested objects.\n\n${transcript}`
         }]
       })
     });
