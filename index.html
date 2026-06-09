@@ -1,0 +1,1293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welluma Health – Never Miss What Matters</title>
+  <meta name="description" content="Welluma records your medical appointments and turns them into clear, plain-language summaries with trusted resource links. Available on iPhone." />
+  <meta name="theme-color" content="#1B4F72" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Welluma Health – Never Miss What Matters" />
+  <meta property="og:description" content="Record your appointments. Understand your care. Welluma turns medical visits into plain-language summaries with trusted resources." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://wellumahealth.com" />
+
+  <!-- Apple-specific meta for App Store compliance -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Welluma Health" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── TOKENS ─────────────────────────────────────────────── */
+    :root {
+      --navy:      #1B4F72;
+      --navy-deep: #122E42;
+      --teal:      #1A7A6E;
+      --teal-lt:   #23A99A;
+      --sky:       #D6EEF8;
+      --mint:      #D4F0EC;
+      --white:     #FFFFFF;
+      --off-white: #F5F9FC;
+      --text:      #1A2733;
+      --muted:     #5A7080;
+      --border:    #D0E4EE;
+
+      --display: 'DM Serif Display', Georgia, serif;
+      --body:    'Inter', system-ui, sans-serif;
+
+      --radius:  14px;
+      --shadow:  0 4px 24px rgba(27,79,114,.10);
+      --shadow-lg: 0 12px 48px rgba(27,79,114,.15);
+    }
+
+    /* ─── RESET ──────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--body);
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+
+    /* ─── UTILITIES ──────────────────────────────────────────── */
+    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+    .section-label {
+      font-size: .72rem;
+      font-weight: 600;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 12px;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 26px;
+      border-radius: 50px;
+      font-family: var(--body);
+      font-size: .92rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: transform .15s, box-shadow .15s, background .15s;
+    }
+    .btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .btn-primary { background: var(--navy); color: var(--white); }
+    .btn-outline { background: transparent; color: var(--navy); border: 2px solid var(--navy); }
+    .btn-teal { background: var(--teal); color: var(--white); }
+    .btn-white { background: var(--white); color: var(--navy); }
+
+    /* ─── NAVIGATION ─────────────────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 68px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--display);
+      font-size: 1.35rem;
+      color: var(--navy);
+    }
+    .logo-mark {
+      width: 38px; height: 38px;
+      background: var(--navy);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-mark svg { width: 22px; height: 22px; }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+    .nav-links a {
+      font-size: .9rem;
+      font-weight: 500;
+      color: var(--muted);
+      transition: color .15s;
+    }
+    .nav-links a:hover { color: var(--navy); }
+    .nav-cta { display: flex; align-items: center; gap: 12px; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 4px; }
+    .hamburger span { display: block; width: 22px; height: 2px; background: var(--navy); border-radius: 2px; }
+
+    /* ─── HERO ───────────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(145deg, var(--navy-deep) 0%, var(--navy) 55%, var(--teal) 100%);
+      color: var(--white);
+      padding: 96px 0 80px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 80% 60% at 70% 50%, rgba(35,169,154,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 50px;
+      padding: 6px 14px;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--teal-lt);
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-family: var(--display);
+      font-size: clamp(2.4rem, 5vw, 3.4rem);
+      line-height: 1.12;
+      margin-bottom: 20px;
+    }
+    .hero h1 em { font-style: italic; color: var(--teal-lt); }
+    .hero p {
+      font-size: 1.08rem;
+      color: rgba(255,255,255,.82);
+      max-width: 480px;
+      margin-bottom: 36px;
+      line-height: 1.7;
+    }
+    .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+
+    /* Phone mockup */
+    .phone-mockup {
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+    .phone-frame {
+      width: 240px;
+      background: var(--navy-deep);
+      border-radius: 38px;
+      border: 3px solid rgba(255,255,255,.18);
+      padding: 16px 10px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.06);
+      position: relative;
+    }
+    .phone-notch {
+      width: 80px; height: 20px;
+      background: var(--navy-deep);
+      border-radius: 0 0 14px 14px;
+      margin: 0 auto 10px;
+      position: relative;
+      z-index: 2;
+    }
+    .phone-screen {
+      background: var(--off-white);
+      border-radius: 22px;
+      overflow: hidden;
+      min-height: 380px;
+      padding: 16px 14px;
+    }
+    .phone-app-bar {
+      background: var(--navy);
+      margin: -16px -14px 16px;
+      padding: 14px 16px 12px;
+      color: white;
+    }
+    .phone-app-bar .app-title { font-size: .7rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+    .phone-app-bar .app-greeting { font-family: var(--display); font-size: 1rem; }
+    .phone-card {
+      background: var(--white);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid var(--border);
+      box-shadow: 0 2px 8px rgba(0,0,0,.05);
+    }
+    .phone-card .card-tag {
+      font-size: .58rem;
+      font-weight: 700;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--teal);
+      margin-bottom: 4px;
+    }
+    .phone-card .card-title { font-size: .78rem; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .phone-card .card-body { font-size: .66rem; color: var(--muted); line-height: 1.5; }
+    .phone-card .card-link {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-top: 8px; font-size: .62rem; font-weight: 600; color: var(--teal);
+    }
+    .phone-rec {
+      background: linear-gradient(135deg, var(--mint), var(--sky));
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: .64rem;
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    /* ─── TRUST BAR ──────────────────────────────────────────── */
+    .trust-bar {
+      background: var(--off-white);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 0;
+    }
+    .trust-inner {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    .trust-item svg { color: var(--teal); flex-shrink: 0; }
+
+    /* ─── HOW IT WORKS ───────────────────────────────────────── */
+    .how {
+      padding: 96px 0;
+      background: var(--white);
+    }
+    .section-header { text-align: center; margin-bottom: 64px; }
+    .section-header h2 {
+      font-family: var(--display);
+      font-size: clamp(1.9rem, 3.5vw, 2.7rem);
+      color: var(--navy);
+      margin-bottom: 14px;
+    }
+    .section-header p { font-size: 1.05rem; color: var(--muted); max-width: 520px; margin: 0 auto; }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+    }
+    .step {
+      text-align: center;
+      padding: 36px 28px;
+      border-radius: var(--radius);
+      border: 1.5px solid var(--border);
+      background: var(--white);
+      transition: border-color .2s, box-shadow .2s, transform .2s;
+      position: relative;
+    }
+    .step:hover { border-color: var(--teal-lt); box-shadow: var(--shadow); transform: translateY(-4px); }
+    .step-num {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: var(--sky);
+      color: var(--navy);
+      font-family: var(--display);
+      font-size: 1.3rem;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+      border: 2px solid var(--border);
+    }
+    .step h3 { font-size: 1.05rem; font-weight: 600; color: var(--navy); margin-bottom: 10px; }
+    .step p { font-size: .9rem; color: var(--muted); line-height: 1.6; }
+    .step-connector {
+      position: absolute;
+      top: 62px; right: -18px;
+      width: 36px; height: 2px;
+      background: linear-gradient(to right, var(--border), transparent);
+      z-index: 1;
+    }
+
+    /* ─── FEATURES ───────────────────────────────────────────── */
+    .features {
+      padding: 96px 0;
+      background: var(--off-white);
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+    .feature-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 36px 32px;
+      border: 1.5px solid var(--border);
+      transition: box-shadow .2s, transform .2s;
+    }
+    .feature-card:hover { box-shadow: var(--shadow); transform: translateY(-3px); }
+    .feature-card.accent {
+      background: linear-gradient(140deg, var(--navy-deep), var(--navy));
+      color: var(--white);
+      border-color: transparent;
+    }
+    .feature-icon {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 20px;
+      background: var(--sky);
+    }
+    .feature-card.accent .feature-icon { background: rgba(255,255,255,.12); }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 600; margin-bottom: 10px; color: var(--navy); }
+    .feature-card.accent h3 { color: var(--white); }
+    .feature-card p { font-size: .9rem; color: var(--muted); line-height: 1.65; }
+    .feature-card.accent p { color: rgba(255,255,255,.75); }
+
+    /* ─── FOR PATIENTS & PROVIDERS ───────────────────────────── */
+    .audiences {
+      padding: 96px 0;
+      background: var(--white);
+    }
+    .audience-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+    }
+    .audience-panel {
+      border-radius: var(--radius);
+      padding: 44px 40px;
+      border: 1.5px solid var(--border);
+    }
+    .audience-panel.patients {
+      background: linear-gradient(160deg, var(--sky) 0%, var(--white) 100%);
+    }
+    .audience-panel.providers {
+      background: linear-gradient(160deg, var(--mint) 0%, var(--white) 100%);
+    }
+    .audience-icon {
+      width: 56px; height: 56px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+    }
+    .patients .audience-icon { background: var(--navy); }
+    .providers .audience-icon { background: var(--teal); }
+    .audience-panel h3 {
+      font-family: var(--display);
+      font-size: 1.5rem;
+      color: var(--navy);
+      margin-bottom: 14px;
+    }
+    .audience-panel .lead { font-size: 1rem; color: var(--muted); margin-bottom: 24px; line-height: 1.65; }
+    .check-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .check-list li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: .9rem; color: var(--text); line-height: 1.5;
+    }
+    .check-list li::before {
+      content: '';
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      background: var(--teal);
+      flex-shrink: 0;
+      margin-top: 1px;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='8' viewBox='0 0 10 8' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 4L3.5 6.5L9 1' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+
+    /* ─── PRICING ────────────────────────────────────────────── */
+    .pricing {
+      padding: 96px 0;
+      background: var(--off-white);
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      align-items: start;
+    }
+    .price-card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 36px 28px;
+      border: 1.5px solid var(--border);
+      text-align: center;
+    }
+    .price-card.featured {
+      background: linear-gradient(145deg, var(--navy-deep), var(--navy));
+      color: var(--white);
+      border-color: transparent;
+      box-shadow: var(--shadow-lg);
+      transform: scale(1.03);
+    }
+    .price-badge {
+      display: inline-block;
+      background: var(--teal-lt);
+      color: var(--white);
+      font-size: .7rem;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      border-radius: 50px;
+      padding: 4px 12px;
+      margin-bottom: 20px;
+    }
+    .price-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 8px; }
+    .price-card.featured h3 { color: rgba(255,255,255,.8); }
+    .price-amount {
+      font-family: var(--display);
+      font-size: 2.6rem;
+      color: var(--navy);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .price-card.featured .price-amount { color: var(--white); }
+    .price-period { font-size: .82rem; color: var(--muted); margin-bottom: 24px; }
+    .price-card.featured .price-period { color: rgba(255,255,255,.6); }
+    .price-list { list-style: none; text-align: left; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+    .price-list li {
+      display: flex; align-items: flex-start; gap: 8px;
+      font-size: .87rem; color: var(--muted); line-height: 1.4;
+    }
+    .price-card.featured .price-list li { color: rgba(255,255,255,.75); }
+    .price-list li .tick { color: var(--teal-lt); font-weight: 700; flex-shrink: 0; }
+
+    /* ─── ABOUT ──────────────────────────────────────────────── */
+    .about {
+      padding: 96px 0;
+      background: var(--white);
+    }
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .about-visual {
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, var(--navy-deep), var(--teal));
+      padding: 48px 40px;
+      color: var(--white);
+      box-shadow: var(--shadow-lg);
+    }
+    .about-visual h3 {
+      font-family: var(--display);
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      line-height: 1.25;
+    }
+    .about-visual p { font-size: .92rem; color: rgba(255,255,255,.8); line-height: 1.7; margin-bottom: 16px; }
+    .founder-tag {
+      display: flex; align-items: center; gap: 12px;
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255,255,255,.15);
+    }
+    .founder-avatar {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.15);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--display);
+      font-size: 1.1rem;
+      color: var(--white);
+    }
+    .founder-tag .name { font-weight: 600; font-size: .88rem; }
+    .founder-tag .role { font-size: .78rem; color: rgba(255,255,255,.65); }
+    .about-content h2 {
+      font-family: var(--display);
+      font-size: clamp(1.7rem, 3vw, 2.3rem);
+      color: var(--navy);
+      margin-bottom: 20px;
+      line-height: 1.2;
+    }
+    .about-content p { font-size: .95rem; color: var(--muted); line-height: 1.75; margin-bottom: 16px; }
+    .about-values {
+      display: flex; flex-direction: column; gap: 14px;
+      margin-top: 28px;
+    }
+    .value-item {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: var(--off-white);
+      border: 1px solid var(--border);
+    }
+    .value-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--teal);
+      flex-shrink: 0;
+      margin-top: 6px;
+    }
+    .value-item h4 { font-size: .88rem; font-weight: 600; color: var(--navy); margin-bottom: 2px; }
+    .value-item p { font-size: .82rem; color: var(--muted); margin: 0; }
+
+    /* ─── PRIVACY ────────────────────────────────────────────── */
+    .privacy-bar {
+      background: var(--navy-deep);
+      padding: 64px 0;
+      color: var(--white);
+    }
+    .privacy-inner {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 32px;
+      text-align: center;
+    }
+    .privacy-item .pi-icon {
+      width: 52px; height: 52px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.12);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .privacy-item h4 { font-size: .92rem; font-weight: 600; margin-bottom: 6px; }
+    .privacy-item p { font-size: .8rem; color: rgba(255,255,255,.6); line-height: 1.5; }
+
+    /* ─── CONTACT ────────────────────────────────────────────── */
+    .contact {
+      padding: 96px 0;
+      background: var(--off-white);
+    }
+    .contact-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.4fr;
+      gap: 64px;
+      align-items: start;
+    }
+    .contact-info h2 {
+      font-family: var(--display);
+      font-size: clamp(1.7rem, 3vw, 2.2rem);
+      color: var(--navy);
+      margin-bottom: 16px;
+    }
+    .contact-info p { font-size: .95rem; color: var(--muted); line-height: 1.7; margin-bottom: 32px; }
+    .contact-detail {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px;
+      font-size: .9rem;
+      color: var(--text);
+    }
+    .contact-detail .cd-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .contact-detail a { color: var(--teal); font-weight: 500; }
+    .contact-detail a:hover { text-decoration: underline; }
+    .contact-form {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 40px;
+      border: 1.5px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+    .form-group label { font-size: .82rem; font-weight: 600; color: var(--text); }
+    .form-group input, .form-group select, .form-group textarea {
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-family: var(--body);
+      font-size: .9rem;
+      color: var(--text);
+      background: var(--white);
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+      width: 100%;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(26,122,110,.12);
+    }
+    .form-group textarea { resize: vertical; min-height: 110px; }
+    .form-success {
+      display: none;
+      text-align: center;
+      padding: 20px;
+      color: var(--teal);
+      font-weight: 600;
+    }
+
+    /* ─── FOOTER ─────────────────────────────────────────────── */
+    footer {
+      background: var(--navy-deep);
+      color: var(--white);
+      padding: 56px 0 32px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 48px;
+    }
+    .footer-brand .logo { color: var(--white); margin-bottom: 16px; }
+    .footer-brand .logo-mark { background: rgba(255,255,255,.12); }
+    .footer-brand p { font-size: .85rem; color: rgba(255,255,255,.55); line-height: 1.65; max-width: 260px; }
+    .footer-col h4 { font-size: .82rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.45); margin-bottom: 16px; }
+    .footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+    .footer-col ul li a { font-size: .87rem; color: rgba(255,255,255,.65); transition: color .15s; }
+    .footer-col ul li a:hover { color: var(--white); }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .footer-bottom p { font-size: .8rem; color: rgba(255,255,255,.4); }
+    .footer-bottom a { color: rgba(255,255,255,.5); transition: color .15s; }
+    .footer-bottom a:hover { color: var(--white); }
+    .app-store-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255,255,255,.1);
+      border: 1px solid rgba(255,255,255,.2);
+      border-radius: 12px;
+      padding: 10px 18px;
+      color: var(--white);
+      font-size: .85rem;
+      font-weight: 600;
+      transition: background .15s;
+      cursor: pointer;
+    }
+    .app-store-btn:hover { background: rgba(255,255,255,.18); }
+
+    /* ─── APP STORE BADGE ────────────────────────────────────── */
+    .store-badges { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+    .badge-apple {
+      display: inline-flex; align-items: center; gap: 10px;
+      background: var(--white); color: var(--navy-deep);
+      border-radius: 12px; padding: 10px 20px;
+      font-size: .82rem; font-weight: 700;
+      box-shadow: var(--shadow);
+      transition: transform .15s, box-shadow .15s;
+    }
+    .badge-apple:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .badge-apple .badge-sub { font-size: .7rem; font-weight: 400; opacity: .7; display: block; }
+
+    /* ─── RESPONSIVE ─────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero-grid, .about-grid, .contact-grid, .audience-grid { grid-template-columns: 1fr; }
+      .hero-grid { gap: 48px; }
+      .phone-mockup { order: -1; }
+      .steps-grid, .pricing-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+      .privacy-inner { grid-template-columns: 1fr 1fr; gap: 24px; }
+      .price-card.featured { transform: none; }
+      .nav-links, .nav-cta { display: none; }
+      .hamburger { display: flex; }
+    }
+    @media (max-width: 600px) {
+      .footer-grid { grid-template-columns: 1fr; }
+      .privacy-inner { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .trust-inner { flex-direction: column; gap: 16px; }
+      .hero { padding: 64px 0 56px; }
+      .contact-form { padding: 28px 20px; }
+      .about-visual { padding: 32px 24px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { transition: none !important; animation: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══ NAVIGATION ══════════════════════════════════════════════ -->
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="logo" aria-label="Welluma Health Home">
+      <div class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11 3C11 3 5 6.5 5 12.5C5 15.5 7.5 18 11 18C14.5 18 17 15.5 17 12.5C17 6.5 11 3 11 3Z" fill="white" fill-opacity="0.25"/>
+          <path d="M7 12C7.5 10 9 8.5 11 8C13 7.5 15 9 15 11.5C15 13.5 13.5 15 11 15C8.5 15 7 13.5 7 12Z" fill="white"/>
+          <path d="M11 10V14M9 12H13" stroke="#1B4F72" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      Welluma
+    </a>
+
+    <ul class="nav-links" role="navigation" aria-label="Main navigation">
+      <li><a href="#how-it-works">How It Works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#audiences">Who It's For</a></li>
+      <li><a href="#about">About</a></li>
+      <li><a href="#contact">Contact</a></li>
+    </ul>
+
+    <div class="nav-cta">
+      <a href="#pricing" class="btn btn-outline" style="padding:9px 20px;font-size:.84rem;">Pricing</a>
+      <a href="#contact" class="btn btn-primary" style="padding:9px 20px;font-size:.84rem;">Get the App</a>
+    </div>
+
+    <button class="hamburger" aria-label="Open menu" onclick="toggleMenu(this)">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile menu overlay (simple) -->
+<div id="mobile-menu" style="display:none;position:fixed;inset:0;background:rgba(18,46,66,.97);z-index:200;padding:80px 32px 40px;flex-direction:column;gap:28px;">
+  <button onclick="document.getElementById('mobile-menu').style.display='none'" style="position:absolute;top:20px;right:24px;background:none;border:none;color:white;font-size:1.5rem;cursor:pointer;" aria-label="Close menu">✕</button>
+  <a href="#how-it-works" style="color:white;font-size:1.3rem;font-family:'DM Serif Display',serif;" onclick="document.getElementById('mobile-menu').style.display='none'">How It Works</a>
+  <a href="#features" style="color:white;font-size:1.3rem;font-family:'DM Serif Display',serif;" onclick="document.getElementById('mobile-menu').style.display='none'">Features</a>
+  <a href="#audiences" style="color:white;font-size:1.3rem;font-family:'DM Serif Display',serif;" onclick="document.getElementById('mobile-menu').style.display='none'">Who It's For</a>
+  <a href="#about" style="color:white;font-size:1.3rem;font-family:'DM Serif Display',serif;" onclick="document.getElementById('mobile-menu').style.display='none'">About</a>
+  <a href="#contact" style="color:white;font-size:1.3rem;font-family:'DM Serif Display',serif;" onclick="document.getElementById('mobile-menu').style.display='none'">Contact</a>
+  <a href="#contact" class="btn btn-teal" style="width:fit-content;margin-top:16px;" onclick="document.getElementById('mobile-menu').style.display='none'">Get the App</a>
+</div>
+
+<!-- ═══ HERO ═══════════════════════════════════════════════════ -->
+<section class="hero" aria-label="Hero">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <div class="hero-eyebrow" aria-hidden="true">
+        <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>
+        Now available on iPhone
+      </div>
+      <h1>Your appointments.<br><em>Finally</em> in plain language.</h1>
+      <p>Welluma records your medical visits and turns them into clear summaries with trusted resource links — so nothing important gets lost between the clinic and home.</p>
+      <div class="hero-actions">
+        <a href="#contact" class="btn btn-white">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1C4.13 1 1 4.13 1 8s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7zm2.5 7.5l-3 2a.5.5 0 0 1-.78-.41V5.91a.5.5 0 0 1 .78-.41l3 2a.5.5 0 0 1 0 .82z" fill="#1B4F72"/></svg>
+          Download Free
+        </a>
+        <a href="#how-it-works" class="btn" style="background:rgba(255,255,255,.12);color:white;border:1.5px solid rgba(255,255,255,.25);">See How It Works</a>
+      </div>
+    </div>
+
+    <!-- Phone mockup -->
+    <div class="phone-mockup" aria-hidden="true">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-app-bar">
+            <div class="app-title">Welluma Health</div>
+            <div class="app-greeting">Good morning, Sarah 👋</div>
+          </div>
+          <div class="phone-card">
+            <div class="card-tag">Today's Summary</div>
+            <div class="card-title">Dr. Patel — Family Medicine</div>
+            <div class="card-body">Your blood pressure is well-controlled. Dr. Patel recommended continuing your current medication and increasing daily walks to 30 minutes.</div>
+            <div class="card-link">
+              View trusted resources
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M5 2l3 3-3 3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+          <div class="phone-card">
+            <div class="card-tag">Follow-up</div>
+            <div class="card-title">Lab Work Reminder</div>
+            <div class="card-body">Fasting bloodwork requested. Book within 2 weeks.</div>
+          </div>
+          <div class="phone-rec">
+            ✓ Summary shared with care team
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ TRUST BAR ═══════════════════════════════════════════════ -->
+<div class="trust-bar" role="complementary" aria-label="Trust indicators">
+  <div class="container trust-inner">
+    <div class="trust-item">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="color:var(--teal)"><path d="M9 1.5L11.5 6.5L17 7.5L13 11.5L14 17L9 14.5L4 17L5 11.5L1 7.5L6.5 6.5L9 1.5Z" fill="currentColor" opacity=".2"/><path d="M9 1.5L11.5 6.5L17 7.5L13 11.5L14 17L9 14.5L4 17L5 11.5L1 7.5L6.5 6.5L9 1.5Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      Clinician-founded
+    </div>
+    <div class="trust-item">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="color:var(--teal)"><rect x="3" y="2" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M6 6h6M6 9h6M6 12h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Plain-language AI summaries
+    </div>
+    <div class="trust-item">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="color:var(--teal)"><path d="M9 2C6 2 3.5 4.5 3.5 7.5C3.5 11.5 9 16 9 16C9 16 14.5 11.5 14.5 7.5C14.5 4.5 12 2 9 2Z" stroke="currentColor" stroke-width="1.5"/><circle cx="9" cy="7.5" r="2" stroke="currentColor" stroke-width="1.5"/></svg>
+      Northern Ontario–built
+    </div>
+    <div class="trust-item">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="color:var(--teal)"><path d="M9 1.5C5 1.5 1.5 5 1.5 9S5 16.5 9 16.5 16.5 13 16.5 9 13 1.5 9 1.5z" stroke="currentColor" stroke-width="1.5"/><path d="M6 9l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      30-day free trial
+    </div>
+    <div class="trust-item">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" style="color:var(--teal)"><rect x="4" y="7" width="10" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M6.5 7V5.5a2.5 2.5 0 0 1 5 0V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Privacy-first design
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HOW IT WORKS ════════════════════════════════════════════ -->
+<section class="how" id="how-it-works" aria-labelledby="how-heading">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">How It Works</div>
+      <h2 id="how-heading">From appointment to understanding</h2>
+      <p>Three steps that take the confusion out of healthcare visits.</p>
+    </div>
+    <div class="steps-grid">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Record your visit</h3>
+        <p>Open Welluma before your appointment. The app captures the conversation with your provider's consent — no manual notes required.</p>
+        <div class="step-connector" aria-hidden="true"></div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Get a plain-language summary</h3>
+        <p>Welluma's AI processes the recording and produces a clear, organized summary of what was discussed, recommended, and next steps — within minutes.</p>
+        <div class="step-connector" aria-hidden="true"></div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Access trusted resources</h3>
+        <p>Each summary links to curated, evidence-based health information so you can learn more, follow through on recommendations, and arrive better prepared for follow-ups.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FEATURES ════════════════════════════════════════════════ -->
+<section class="features" id="features" aria-labelledby="features-heading">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">Features</div>
+      <h2 id="features-heading">Built for the real world of healthcare</h2>
+      <p>Designed with input from nurse practitioners and primary care teams in Northern Ontario.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--navy)"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Appointment recording &amp; transcription</h3>
+        <p>High-quality audio capture turns your visit into a searchable, readable record you can return to any time — not just when you're trying to remember what the doctor said at 2 AM.</p>
+      </div>
+      <div class="feature-card accent">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:white"><path d="M12 3C8 3 5 6 5 10C5 14 12 21 12 21C12 21 19 14 19 10C19 6 16 3 12 3Z" stroke="white" stroke-width="1.8"/><path d="M10 10H14M12 8V12" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>AI-powered plain-language summaries</h3>
+        <p>Medical jargon doesn't help anyone. Welluma translates clinical language into clear, conversational summaries your whole family can understand — without losing important detail.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--navy)"><path d="M4 6h16M4 12h10M4 18h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="19" cy="17" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M21 19l1.5 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Trusted resource links</h3>
+        <p>Every summary surfaces curated, evidence-based links — from Health Canada to reputable patient foundations — so you know exactly where to learn more.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--navy)"><rect x="3" y="3" width="18" height="18" rx="3" stroke="currentColor" stroke-width="1.8"/><path d="M8 12l3 3 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Secure visit history</h3>
+        <p>All your visits live in one organized, private timeline. Search past appointments, track recurring concerns, and see your health story at a glance.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--navy)"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.8"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Share with your care team</h3>
+        <p>Easily share a summary with a family member, caregiver, or another provider. Continuity of care shouldn't depend on anyone's memory.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="color:var(--navy)"><rect x="5" y="2" width="14" height="20" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M9 7h6M9 11h6M9 15h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Follow-up prompts</h3>
+        <p>Welluma flags any follow-up actions from your visit — lab work, referrals, medication changes — so important next steps don't fall through the cracks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ AUDIENCES ═══════════════════════════════════════════════ -->
+<section class="audiences" id="audiences" aria-labelledby="audiences-heading">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">Who It's For</div>
+      <h2 id="audiences-heading">Made for patients. Valued by providers.</h2>
+      <p>Whether you're managing your own health or supporting the people in your care, Welluma closes the gap between the clinic and everyday life.</p>
+    </div>
+    <div class="audience-grid">
+      <div class="audience-panel patients">
+        <div class="audience-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 4C10.13 4 7 7.13 7 11C7 16 14 24 14 24C14 24 21 16 21 11C21 7.13 17.87 4 14 4Z" fill="white" fill-opacity=".9"/><path d="M11 11h6M14 8v6" stroke="#1B4F72" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>For Patients</h3>
+        <p class="lead">You deserve to fully understand your own health. Welluma makes sure you leave every appointment informed, not overwhelmed.</p>
+        <ul class="check-list">
+          <li>Capture everything your provider says — even when you're anxious or tired</li>
+          <li>Understand diagnoses, medications, and next steps in plain English</li>
+          <li>Share summaries with family members who help manage your care</li>
+          <li>Build a complete, searchable health history over time</li>
+          <li>Arrive at follow-ups prepared with the right questions</li>
+        </ul>
+      </div>
+      <div class="audience-panel providers">
+        <div class="audience-icon">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="10" r="5" fill="white" fill-opacity=".9"/><path d="M6 24c0-4.42 3.58-8 8-8s8 3.58 8 8" stroke="white" stroke-width="2" stroke-linecap="round"/><path d="M19 13v6M16 16h6" stroke="white" stroke-width="1.8" stroke-linecap="round"/></svg>
+        </div>
+        <h3>For Healthcare Providers</h3>
+        <p class="lead">Your patients leave understanding what you said. That means better adherence, fewer repeat calls, and more meaningful appointments.</p>
+        <ul class="check-list">
+          <li>Patients show up more engaged and informed at follow-ups</li>
+          <li>Medication and care plan adherence improves with written summaries</li>
+          <li>Reduces the burden of follow-up phone calls and clarification questions</li>
+          <li>Supports patients with language barriers or health literacy challenges</li>
+          <li>Complements existing EMR workflows — no integration required</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRICING ═════════════════════════════════════════════════ -->
+<section class="pricing" id="pricing" aria-labelledby="pricing-heading">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">Pricing</div>
+      <h2 id="pricing-heading">Simple, transparent plans</h2>
+      <p>Start free. Stay because it works.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card">
+        <h3>Free Trial</h3>
+        <div class="price-amount">$0</div>
+        <p class="price-period">30 days, full access</p>
+        <ul class="price-list">
+          <li><span class="tick">✓</span> Unlimited appointment recordings</li>
+          <li><span class="tick">✓</span> AI plain-language summaries</li>
+          <li><span class="tick">✓</span> Trusted resource links</li>
+          <li><span class="tick">✓</span> Visit history &amp; search</li>
+          <li><span class="tick">✓</span> No credit card required</li>
+        </ul>
+        <a href="#contact" class="btn btn-outline" style="width:100%;justify-content:center;">Start Free Trial</a>
+      </div>
+      <div class="price-card featured">
+        <div class="price-badge">Most Popular</div>
+        <h3>Monthly</h3>
+        <div class="price-amount">$4.99</div>
+        <p class="price-period">per month, after free trial</p>
+        <ul class="price-list">
+          <li><span class="tick">✓</span> Everything in Free Trial</li>
+          <li><span class="tick">✓</span> Unlimited storage</li>
+          <li><span class="tick">✓</span> Share summaries &amp; export</li>
+          <li><span class="tick">✓</span> Follow-up action reminders</li>
+          <li><span class="tick">✓</span> Priority support</li>
+        </ul>
+        <a href="#contact" class="btn btn-white" style="width:100%;justify-content:center;">Get Started</a>
+      </div>
+      <div class="price-card">
+        <h3>Promo Codes</h3>
+        <div class="price-amount" style="font-size:1.8rem;color:var(--teal);">3 Months</div>
+        <p class="price-period">free with a promo code</p>
+        <ul class="price-list">
+          <li><span class="tick" style="color:var(--teal);">✓</span> Use code <strong>WELLUMA3</strong></li>
+          <li><span class="tick" style="color:var(--teal);">✓</span> Use code <strong>FRIENDS3</strong></li>
+          <li><span class="tick" style="color:var(--teal);">✓</span> Use code <strong>NP2026</strong> for nurse practitioners</li>
+          <li><span class="tick" style="color:var(--teal);">✓</span> All full-access features included</li>
+        </ul>
+        <a href="#contact" class="btn btn-teal" style="width:100%;justify-content:center;">Claim Your Code</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ PRIVACY BAR ═════════════════════════════════════════════ -->
+<section class="privacy-bar" aria-labelledby="privacy-heading">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:40px;">
+      <div class="section-label" style="color:rgba(255,255,255,.5);">Privacy &amp; Security</div>
+      <h2 id="privacy-heading" style="font-family:var(--display);font-size:clamp(1.5rem,3vw,2.1rem);margin-bottom:10px;">Your health data is yours</h2>
+      <p style="color:rgba(255,255,255,.6);max-width:500px;margin:0 auto;font-size:.95rem;">Privacy is not an afterthought at Welluma — it's the foundation everything is built on.</p>
+    </div>
+    <div class="privacy-inner">
+      <div class="privacy-item">
+        <div class="pi-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="4" y="9" width="14" height="11" rx="2" stroke="white" stroke-width="1.6"/><path d="M7.5 9V6.5a3.5 3.5 0 1 1 7 0V9" stroke="white" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <h4>End-to-end encrypted</h4>
+        <p>Recordings and summaries are encrypted in transit and at rest. No one can read your data but you.</p>
+      </div>
+      <div class="privacy-item">
+        <div class="pi-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 3L4 6.5V11C4 15.1 7.1 18.9 11 20C14.9 18.9 18 15.1 18 11V6.5L11 3Z" stroke="white" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 11l2 2 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h4>Never sold</h4>
+        <p>Your health information is never sold, shared with advertisers, or used to train AI models.</p>
+      </div>
+      <div class="privacy-item">
+        <div class="pi-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><circle cx="11" cy="11" r="8" stroke="white" stroke-width="1.6"/><path d="M11 7v4l2.5 2.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h4>Delete any time</h4>
+        <p>You own your data completely. Delete individual appointments or your entire account at any time.</p>
+      </div>
+      <div class="privacy-item">
+        <div class="pi-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="3" y="3" width="16" height="16" rx="3" stroke="white" stroke-width="1.6"/><path d="M7 11h8M11 7v8" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <h4>You control sharing</h4>
+        <p>Summaries are private by default. You choose if, when, and with whom any summary is shared.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ ABOUT ════════════════════════════════════════════════════ -->
+<section class="about" id="about" aria-labelledby="about-heading">
+  <div class="container about-grid">
+    <div class="about-visual">
+      <h3>Built by a nurse practitioner who saw the problem firsthand.</h3>
+      <p>After years in primary care in Northern Ontario, Nicole Welsh watched patients leave appointments confused, overwhelmed, and unsure of what came next — not because their providers weren't thorough, but because 15 minutes isn't enough time for a complex health conversation to fully land.</p>
+      <p>Welluma is the tool she wished her patients had.</p>
+      <div class="founder-tag">
+        <div class="founder-avatar">NW</div>
+        <div>
+          <div class="name">Nicole Welsh, NP</div>
+          <div class="role">Co-founder &amp; CEO, Welluma Health Inc.</div>
+        </div>
+      </div>
+    </div>
+    <div class="about-content">
+      <div class="section-label">About Us</div>
+      <h2 id="about-heading">We believe understanding your health is a right, not a privilege.</h2>
+      <p>Welluma Health Inc. is a Canadian health technology company founded in Greater Sudbury, Northern Ontario. We are a team of clinicians, technologists, and advocates who believe that the gap between what's said in a clinic and what's understood at home is one of the most solvable problems in healthcare.</p>
+      <p>We build tools that bridge that gap — simply, privately, and without replacing the human relationship at the heart of good care.</p>
+      <div class="about-values">
+        <div class="value-item">
+          <div class="value-dot"></div>
+          <div>
+            <h4>Clarity over complexity</h4>
+            <p>Healthcare is complex enough. Our job is to translate, never to add confusion.</p>
+          </div>
+        </div>
+        <div class="value-item">
+          <div class="value-dot"></div>
+          <div>
+            <h4>Patient-first always</h4>
+            <p>Every feature is evaluated by one question: does this help someone understand their care better?</p>
+          </div>
+        </div>
+        <div class="value-item">
+          <div class="value-dot"></div>
+          <div>
+            <h4>Privacy by design</h4>
+            <p>We architect for privacy from day one — not as a feature, but as a promise.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CONTACT ═════════════════════════════════════════════════ -->
+<section class="contact" id="contact" aria-labelledby="contact-heading">
+  <div class="container contact-grid">
+    <div class="contact-info">
+      <div class="section-label">Contact Us</div>
+      <h2 id="contact-heading">We'd love to hear from you</h2>
+      <p>Have a question about Welluma, a partnership inquiry, or feedback on the app? Our team personally reads every message.</p>
+
+      <div class="contact-detail">
+        <div class="cd-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 4h12a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" stroke="var(--navy)" stroke-width="1.5"/><path d="M2 5l7 5 7-5" stroke="var(--navy)" stroke-width="1.5" stroke-linecap="round"/></svg>
+        </div>
+        <span>General inquiries: <a href="mailto:wellumahealth@gmail.com">wellumahealth@gmail.com</a></span>
+      </div>
+      <div class="contact-detail">
+        <div class="cd-icon">
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2C6 2 3.5 4.5 3.5 7.5C3.5 11.5 9 16 9 16C9 16 14.5 11.5 14.5 7.5C14.5 4.5 12 2 9 2Z" stroke="var(--navy)" stroke-width="1.5"/><circle cx="9" cy="7.5" r="2" stroke="var(--navy)" stroke-width="1.5"/></svg>
+        </div>
+        <span>Greater Sudbury, Ontario, Canada</span>
+      </div>
+
+      <div style="margin-top:32px;">
+        <div class="section-label">Get the App</div>
+        <div class="store-badges">
+          <a href="https://apps.apple.com/app/id6772865076" target="_blank" rel="noopener noreferrer" class="badge-apple" aria-label="Download Welluma on the App Store">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M14.83 10.74c-.02-2.05 1.67-3.04 1.74-3.08-0.95-1.39-2.42-1.58-2.94-1.6-1.25-.13-2.44.74-3.07.74-.63 0-1.61-.72-2.65-.7-1.36.02-2.62.79-3.32 2.01-1.42 2.46-.36 6.12 1.02 8.12.68.97 1.48 2.07 2.53 2.03 1.02-.04 1.4-.66 2.63-.66 1.22 0 1.57.66 2.64.64 1.09-.02 1.78-.99 2.45-1.97.77-1.12 1.09-2.21 1.11-2.27-.03-.01-2.13-.81-2.15-3.23z" fill="var(--navy-deep)"/><path d="M12.92 4.94c.56-.69.94-1.64.84-2.6-.81.03-1.8.54-2.38 1.22-.52.6-.98 1.57-.86 2.49.91.07 1.83-.46 2.4-1.11z" fill="var(--navy-deep)"/></svg>
+            <div><div class="badge-sub">Download on the</div>App Store</div>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-form" role="form" aria-label="Contact form">
+      <h3 style="font-family:var(--display);font-size:1.4rem;color:var(--navy);margin-bottom:24px;">Send us a message</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="first-name">First name</label>
+          <input type="text" id="first-name" name="first-name" autocomplete="given-name" placeholder="Nicole" />
+        </div>
+        <div class="form-group">
+          <label for="last-name">Last name</label>
+          <input type="text" id="last-name" name="last-name" autocomplete="family-name" placeholder="Welsh" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="email">Email address</label>
+        <input type="email" id="email" name="email" autocomplete="email" placeholder="you@example.com" />
+      </div>
+      <div class="form-group">
+        <label for="role">I am a…</label>
+        <select id="role" name="role">
+          <option value="">Select your role</option>
+          <option>Patient / App user</option>
+          <option>Nurse Practitioner</option>
+          <option>Physician</option>
+          <option>Other healthcare provider</option>
+          <option>Clinic or health organization</option>
+          <option>Media / Press</option>
+          <option>Partnership inquiry</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="message">Message</label>
+        <textarea id="message" name="message" placeholder="Tell us what's on your mind…"></textarea>
+      </div>
+      <button type="button" class="btn btn-teal" style="width:100%;justify-content:center;padding:14px;" onclick="handleSubmit()">
+        Send Message
+      </button>
+      <div class="form-success" id="form-success" role="alert">
+        ✓ Message sent! We'll be in touch at <strong>wellumahealth@gmail.com</strong>.
+      </div>
+      <p style="font-size:.75rem;color:var(--muted);margin-top:16px;text-align:center;">By submitting, you agree to our <a href="#privacy" style="color:var(--teal)">Privacy Policy</a>. We never share your information.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ FOOTER ══════════════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="logo" aria-label="Welluma Health">
+          <div class="logo-mark" aria-hidden="true">
+            <svg viewBox="0 0 22 22" fill="none" width="22" height="22"><path d="M11 3C11 3 5 6.5 5 12.5C5 15.5 7.5 18 11 18C14.5 18 17 15.5 17 12.5C17 6.5 11 3 11 3Z" fill="white" fill-opacity="0.2"/><path d="M7 12C7.5 10 9 8.5 11 8C13 7.5 15 9 15 11.5C15 13.5 13.5 15 11 15C8.5 15 7 13.5 7 12Z" fill="white"/><path d="M11 10V14M9 12H13" stroke="rgba(27,79,114,.8)" stroke-width="1.4" stroke-linecap="round"/></svg>
+          </div>
+          Welluma
+        </a>
+        <p>Making healthcare conversations clearer, for patients and providers across Canada.</p>
+        <div style="margin-top:20px;">
+          <a href="https://apps.apple.com/app/id6772865076" target="_blank" rel="noopener noreferrer" class="app-store-btn" aria-label="Download on App Store">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M11.87 8.59c-.02-1.64 1.34-2.43 1.39-2.46-.76-1.11-1.94-1.26-2.35-1.28-1-.1-1.95.59-2.46.59s-1.29-.57-2.12-.56c-1.09.02-2.1.63-2.66 1.61-1.13 1.97-.29 4.9.82 6.5.54.78 1.18 1.66 2.02 1.62.82-.03 1.12-.53 2.1-.53.98 0 1.26.53 2.11.51.87-.02 1.42-.79 1.96-1.58.62-.9.87-1.77.89-1.82-.02-.01-1.71-.65-1.72-2.58z" fill="white"/><path d="M10.34 3.96c.45-.55.75-1.31.67-2.08-.65.03-1.44.43-1.9.98-.42.48-.78 1.26-.69 1.99.73.06 1.47-.37 1.92-.89z" fill="white"/></svg>
+            Download on the App Store
+          </a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#pricing">Pricing</a></li>
+          <li><a href="#audiences">For Providers</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#about">About Us</a></li>
+          <li><a href="mailto:wellumahealth@gmail.com">Press</a></li>
+          <li><a href="mailto:wellumahealth@gmail.com">Partnerships</a></li>
+          <li><a href="#contact">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="#privacy">Privacy Policy</a></li>
+          <li><a href="#terms">Terms of Use</a></li>
+          <li><a href="#privacy">Data Practices</a></li>
+          <li><a href="mailto:wellumahealth@gmail.com">Support</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>© 2026 Welluma Health Inc. All rights reserved. Greater Sudbury, Ontario, Canada.</p>
+      <p>Apple and the Apple logo are trademarks of Apple Inc. App Store is a service mark of Apple Inc.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function toggleMenu(btn) {
+    const menu = document.getElementById('mobile-menu');
+    menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+  }
+
+  function handleSubmit() {
+    const first = document.getElementById('first-name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const message = document.getElementById('message').value.trim();
+
+    if (!first || !email || !message) {
+      alert('Please fill in your name, email, and message before sending.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+
+    // Build mailto link as fallback (works without backend)
+    const last = document.getElementById('last-name').value.trim();
+    const role = document.getElementById('role').value;
+    const subject = encodeURIComponent(`Welluma Contact Form – ${first} ${last}`);
+    const body = encodeURIComponent(
+      `Name: ${first} ${last}\nEmail: ${email}\nRole: ${role || 'Not specified'}\n\nMessage:\n${message}`
+    );
+    window.location.href = `mailto:wellumahealth@gmail.com?subject=${subject}&body=${body}`;
+
+    document.getElementById('form-success').style.display = 'block';
+    document.querySelector('.contact-form button').disabled = true;
+  }
+
+  // Smooth scroll for nav links
+  document.querySelectorAll('a[href^="#"]').forEach(link => {
+    link.addEventListener('click', e => {
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) {
+        e.preventDefault();
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+</script>
+</body>
+</html>
