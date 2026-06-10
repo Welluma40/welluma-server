@@ -21,7 +21,7 @@ app.post('/analyze', async (req, res) => {
         max_tokens: 1500,
         messages: [{
           role: 'user',
-          content: `You are a medical visit assistant. Analyze this transcript and return ONLY a raw JSON object with these exact keys: summary (string), recommendations (array of strings), medications (array of strings), followUp (string), resources (array of objects with label and url). Choose 4-8 resources from trusted sources. Return ONLY the JSON object, no markdown, no backticks, no extra text before or after.\n\nTranscript: ${transcript}`
+          content: `You are a medical visit assistant. Analyze this transcript and return ONLY a raw JSON object with these exact keys: summary (string), recommendations (array of strings), medications (array of simple strings, just medication name and dose combined e.g. "Lisinopril 10mg daily"), followUp (string), resources (array of objects with label and url). Choose 4-8 resources from trusted sources. Return ONLY the JSON object, no markdown, no backticks, no extra text before or after.\n\nTranscript: ${transcript}`
         }]
       })
     });
