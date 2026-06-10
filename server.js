@@ -21,7 +21,16 @@ app.post('/analyze', async (req, res) => {
         max_tokens: 1500,
         messages: [{
           role: 'user',
-          content: `You are a medical visit assistant. Analyze this transcript and return ONLY a raw JSON object with these exact keys: summary (string), recommendations (array of strings), medications (array of simple strings, just medication name and dose combined e.g. "Lisinopril 10mg daily"), followUp (string), resources (array of objects with label and url). Choose 4-8 resources from trusted sources. Return ONLY the JSON object, no markdown, no backticks, no extra text before or after.\n\nTranscript: ${transcript}`
+          content: `You are a medical visit assistant. Analyze this transcript and return ONLY a raw JSON object with these exact keys:
+- summary: string
+- recommendations: array of strings
+- medications: array of strings (each string is just the medication name and dose, example: "Lisinopril 10mg daily")
+- followUp: string
+- resources: array of objects each with exactly two keys: "label" (string) and "url" (string)
+
+Return ONLY the JSON object. No markdown, no backticks, no explanation, nothing else.
+
+Transcript: ${transcript}`
         }]
       })
     });
@@ -34,22 +43,24 @@ app.post('/analyze', async (req, res) => {
     }
     
     let content = data.content?.map(b => b.text || '').join('');
-    
-    // Clean up any markdown or extra characters
     content = content.trim();
     if (content.startsWith('```json')) content = content.slice(7);
     if (content.startsWith('```')) content = content.slice(3);
     if (content.endsWith('```')) content = content.slice(0, -3);
     content = content.trim();
-    
-    // Find JSON object boundaries
     const start = content.indexOf('{');
     const end = content.lastIndexOf('}');
-    if (start !== -1 && end !== -1) {
-      content = content.slice(start, end + 1);
-    }
+    if (start !== -1 && end !== -1) content = content.slice(start, end + 1);
     
     const parsed = JSON.parse(content);
+    
+    // Force medications to be simple strings
+    if (parsed.medications) {
+      parsed.medications = parsed.medications.map(m => 
+        typeof m === 'object' ? `${m.name || ''}${m.dosage ? ' ' + m.dosage : ''}${m.frequency ? ' - ' + m.frequency : ''}`.trim() : m
+      );
+    }
+    
     res.json(parsed);
   } catch (error) {
     console.error('Error:', error.message);
