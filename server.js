@@ -24,11 +24,35 @@ app.post('/analyze', async (req, res) => {
           content: `You are a medical visit assistant. Analyze this transcript and return ONLY a raw JSON object with these exact keys:
 - summary: string
 - recommendations: array of strings
-- medications: array of strings (each string is just the medication name and dose, example: "Lisinopril 10mg daily")
+- medications: array of strings (just name and dose, e.g. "Lisinopril 10mg daily")
 - followUp: string
-- resources: array of objects each with exactly two keys: "label" (string) and "url" (string)
+- resources: array of 4-8 objects each with "label" and "url"
 
-Return ONLY the JSON object. No markdown, no backticks, no explanation, nothing else.
+RESOURCE SELECTION RULES - read carefully and follow exactly:
+
+Scan the transcript for these topic categories and include the matching source for EACH category that applies:
+
+1. If the transcript mentions ANY mental health topic (anxiety, depression, stress, substance use, addiction, alcohol, drugs, mood, sleep issues related to mental health) -> MUST include a link from camh.ca (Centre for Addiction and Mental Health)
+
+2. If the transcript mentions ANY pediatric/child topic (child, kid, infant, baby, teenager, pediatric, vaccination schedule for children) -> MUST include a link from caringforkids.cps.ca AND a link from cheo.on.ca
+
+3. If the transcript mentions ANY medication by name -> MUST include a link from drugs.com for that specific medication
+
+4. If the transcript mentions a complex/specialized condition (cancer, transplant, rare disease, complex surgery) -> MUST include a link from uhn.ca
+
+5. If the transcript mentions heart/cardiovascular topics (blood pressure, hypertension, cholesterol, heart disease, cardiac) -> MUST include a link from heart.org
+
+6. If the transcript mentions diabetes or blood sugar -> MUST include a link from diabetes.ca
+
+7. If the transcript mentions PCOS -> MUST include a link from pcosaa.org
+
+8. For general conditions not covered above, OR in addition to the above -> use mayoclinic.org or medlineplus.gov
+
+9. For clinical/treatment guideline information -> medscape.com is appropriate
+
+IMPORTANT: Do not default to only Mayo Clinic and NIH. Actively scan for the specific categories above and prioritize those specialized sources. Most visits should have a MIX of source types, not just general sources.
+
+Return ONLY the JSON object. No markdown, no backticks, no explanation.
 
 Transcript: ${transcript}`
         }]
@@ -54,7 +78,6 @@ Transcript: ${transcript}`
     
     const parsed = JSON.parse(content);
     
-    // Force medications to be simple strings
     if (parsed.medications) {
       parsed.medications = parsed.medications.map(m => 
         typeof m === 'object' ? `${m.name || ''}${m.dosage ? ' ' + m.dosage : ''}${m.frequency ? ' - ' + m.frequency : ''}`.trim() : m
