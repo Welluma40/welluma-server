@@ -46,45 +46,86 @@ CANADIAN LAB VALUES - always use Canadian/SI units in summaries:
 - Weight: kg; Height: cm; Temperature: °C
 Never use mg/dL, lbs, or Fahrenheit in summaries unless the transcript specifically uses those units.
 
-CANADIAN RESOURCE SELECTION RULES - read carefully and follow exactly:
+RESOURCE SELECTION RULES - read carefully and follow exactly:
 
-Scan the transcript for these topic categories and include the matching source for EACH category that applies:
+PRIORITY ORDER: Always include Mayo Clinic first for any condition mentioned. Then add Canadian organizations. Then other sources.
 
-1. If the transcript mentions ANY mental health topic (anxiety, depression, stress, substance use, addiction, alcohol, drugs, mood, sleep issues related to mental health) -> MUST include https://www.camh.ca/ (Centre for Addiction and Mental Health) AND https://cmha.ca/ (Canadian Mental Health Association)
+MAYO CLINIC URLS - always use these exact search URL patterns for conditions:
+- For any condition/disease/symptom -> https://www.mayoclinic.org/search/search-results?q=CONDITION replacing CONDITION with the topic (use + for spaces)
+- Examples:
+  https://www.mayoclinic.org/search/search-results?q=hypertension
+  https://www.mayoclinic.org/search/search-results?q=high+blood+pressure
+  https://www.mayoclinic.org/search/search-results?q=type+2+diabetes
+  https://www.mayoclinic.org/search/search-results?q=lisinopril
+  https://www.mayoclinic.org/search/search-results?q=anxiety
+  https://www.mayoclinic.org/search/search-results?q=high+cholesterol
+ALWAYS include at least one Mayo Clinic search URL. It should be the FIRST resource listed.
 
-2. If the transcript mentions ANY pediatric/child topic (child, kid, infant, baby, teenager, pediatric, vaccination) -> MUST include https://caringforkids.cps.ca/ (Canadian Paediatric Society) AND https://www.cheo.on.ca/
+MEDICATION URLS - for every medication mentioned by name:
+- https://www.drugs.com/search.php?searchterm=MEDICATION_NAME replacing MEDICATION_NAME with the drug name (use + for spaces)
+- Examples:
+  https://www.drugs.com/search.php?searchterm=lisinopril
+  https://www.drugs.com/search.php?searchterm=metformin
+  https://www.drugs.com/search.php?searchterm=atorvastatin
 
-3. If the transcript mentions ANY medication by name -> MUST include https://www.drugs.com/search.php?searchterm=MEDICATION_NAME replacing MEDICATION_NAME with the medication (use + for spaces)
+CANADIAN ORGANIZATION URLS - include for each matching topic:
 
-4. If the transcript mentions cancer -> MUST include https://www.cancer.ca/ (Canadian Cancer Society)
+1. Mental health (anxiety, depression, stress, substance use, addiction, alcohol, drugs, mood, sleep) ->
+   https://www.camh.ca/en/health-info/mental-illness-and-addiction-index (CAMH)
+   https://cmha.ca/mental-health/ (Canadian Mental Health Association)
 
-5. If the transcript mentions heart/cardiovascular topics (blood pressure, hypertension, cholesterol, heart disease, cardiac, stroke) -> MUST include https://www.heartandstroke.ca/ (Heart & Stroke Foundation of Canada) AND if hypertension specifically -> also include https://hypertension.ca/ (Hypertension Canada)
+2. Pediatric/child topics (child, infant, baby, teenager, vaccination) ->
+   https://caringforkids.cps.ca/handouts/browse-by-topic (Canadian Paediatric Society)
+   https://www.cheo.on.ca/en/health-information.aspx (CHEO)
 
-6. If the transcript mentions diabetes or blood sugar -> MUST include https://www.diabetes.ca/ (Diabetes Canada)
+3. Cancer ->
+   https://cancer.ca/en/cancer-information (Canadian Cancer Society)
 
-7. If the transcript mentions lung/respiratory topics (asthma, COPD, emphysema, bronchitis) -> MUST include https://www.lung.ca/ (Canadian Lung Association)
+4. Heart/cardiovascular (blood pressure, hypertension, cholesterol, heart disease, cardiac, stroke) ->
+   https://www.heartandstroke.ca/heart-disease (Heart & Stroke Foundation)
 
-8. If the transcript mentions PCOS -> MUST include https://www.pcosaa.org/
+5. Hypertension specifically ->
+   https://hypertension.ca/hypertension/ (Hypertension Canada)
 
-9. If the transcript mentions osteoporosis or bone density -> MUST include https://osteoporosis.ca/ (Osteoporosis Canada)
+6. Diabetes or blood sugar ->
+   https://www.diabetes.ca/health-care-providers/clinical-practice-guidelines (Diabetes Canada)
 
-10. If the transcript mentions arthritis -> MUST include https://arthritis.ca/ (Arthritis Society Canada)
+7. Lung/respiratory (asthma, COPD, emphysema, bronchitis) ->
+   https://www.lung.ca/lung-health/lung-disease (Canadian Lung Association)
 
-11. If the transcript mentions kidney disease -> MUST include https://kidney.ca/ (Kidney Foundation of Canada)
+8. PCOS ->
+   https://www.pcosaa.org/pcos-overview
 
-12. If the transcript mentions Alzheimer's or dementia -> MUST include https://alzheimer.ca/ (Alzheimer Society of Canada)
+9. Osteoporosis or bone density ->
+   https://osteoporosis.ca/bone-health-osteoporosis/ (Osteoporosis Canada)
 
-13. If the transcript mentions a complex/specialized condition (transplant, rare disease, complex surgery) -> MUST include https://www.uhn.ca/
+10. Arthritis ->
+    https://arthritis.ca/about-arthritis (Arthritis Society Canada)
 
-14. For general conditions not covered above -> use https://www.mayoclinic.org/search/search-results?q=TOPIC or https://medlineplus.gov/search/?query=TOPIC replacing TOPIC with relevant search term (use + for spaces)
+11. Kidney disease ->
+    https://kidney.ca/kidney-health (Kidney Foundation of Canada)
 
-15. For drug/medication information -> https://www.healthlinkbc.ca/ is a trusted Canadian source
+12. Alzheimer's or dementia ->
+    https://alzheimer.ca/en/about-dementia (Alzheimer Society of Canada)
 
-16. For clinical guidelines -> https://www.canada.ca/en/health-canada.html (Health Canada) is appropriate for Canadian guideline context
+13. Complex/specialized conditions (transplant, rare disease, complex surgery) ->
+    https://www.uhn.ca/patients/conditions (University Health Network)
 
-CRITICAL: Every URL must be EXACTLY one of the homepage URLs listed above, OR a search URL built using the exact patterns shown. NEVER invent or guess a specific article/page path.
+14. For any additional conditions not covered above ->
+    https://medlineplus.gov/search/?query=TOPIC replacing TOPIC with relevant search term (use + for spaces)
 
-IMPORTANT: Prioritize Canadian organizations over American ones in all cases. Most visits should have a MIX of source types.
+15. For Canadian drug/medication information ->
+    https://www.healthlinkbc.ca/medications (HealthLink BC)
+
+16. For clinical guidelines ->
+    https://www.canada.ca/en/health-canada.html (Health Canada)
+
+CRITICAL RULES:
+- ALWAYS put Mayo Clinic search URL FIRST in the resources array
+- Use ONLY the exact URL patterns shown above — never invent or guess article paths
+- Every medication mentioned must have a drugs.com search URL
+- Include 4-8 resources total
+- Most visits should have Mayo Clinic + at least 2 Canadian sources
 
 Return ONLY the JSON object. No markdown, no backticks, no explanation.
 
