@@ -1,0 +1,1037 @@
+import { useState, useRef, useEffect } from "react";
+import { supabase } from "./supabase";
+import { CapacitorCalendar } from "@ebarooni/capacitor-calendar";
+import callClaude from "./callClaude";
+import { Purchases, LOG_LEVEL } from "@revenuecat/purchases-capacitor";
+import frTranslations from "./translations";
+
+// Language detection
+const deviceLang = (navigator.language || navigator.userLanguage || "en").toLowerCase();
+const isFrench = deviceLang.startsWith("fr");
+const t = isFrench ? frTranslations : null;
+const T = (key, fallback) => {
+  if (!t) return fallback;
+  const keys = key.split(".");
+  let val = t;
+  for (const k of keys) { val = val?.[k]; }
+  return val || fallback;
+};
+
+const C = {
+  navy: "#0B2D56", navyMid: "#1a3f6f",
+  teal: "#0E7C6B", tealLight: "#E8F2EF", tealMid: "#1D9E75",
+  blue: "#185FA5", blueLight: "#E6F1FB",
+  amber: "#BA7517", amberLight: "#FAEEDA",
+  red: "#A32D2D", redLight: "#FCEBEB",
+  gray50: "#F8F7F3", gray100: "#F1EFE8", gray200: "#D3D1C7",
+  gray400: "#9B9A96", gray600: "#5F5E5A",
+  text: "#1a1a1a", white: "#ffffff",
+  border: "rgba(0,0,0,0.10)",
+};
+
+const MAYO_TOPICS = {
+  diabetes: "https://www.mayoclinic.org/diseases-conditions/diabetes/symptoms-causes/syc-20371444",
+  hypertension: "https://www.mayoclinic.org/diseases-conditions/high-blood-pressure/symptoms-causes/syc-20373410",
+  "high blood pressure": "https://www.mayoclinic.org/diseases-conditions/high-blood-pressure/symptoms-causes/syc-20373410",
+  cholesterol: "https://www.mayoclinic.org/diseases-conditions/high-blood-cholesterol/symptoms-causes/syc-20350800",
+  asthma: "https://www.mayoclinic.org/diseases-conditions/asthma/symptoms-causes/syc-20369653",
+  arthritis: "https://www.mayoclinic.org/diseases-conditions/arthritis/symptoms-causes/syc-20350772",
+  anxiety: "https://www.mayoclinic.org/diseases-conditions/anxiety/symptoms-causes/syc-20350961",
+  depression: "https://www.mayoclinic.org/diseases-conditions/depression/symptoms-causes/syc-20356007",
+  "heart disease": "https://www.mayoclinic.org/diseases-conditions/heart-disease/symptoms-causes/syc-20353118",
+  obesity: "https://www.mayoclinic.org/diseases-conditions/obesity/symptoms-causes/syc-20375742",
+  sleep: "https://www.mayoclinic.org/diseases-conditions/insomnia/symptoms-causes/syc-20355167",
+  "back pain": "https://www.mayoclinic.org/diseases-conditions/back-pain/symptoms-causes/syc-20369906",
+  exercise: "https://www.mayoclinic.org/healthy-lifestyle/fitness/basics/fitness-basics/hlv-20049447",
+  nutrition: "https://www.mayoclinic.org/healthy-lifestyle/nutrition-and-healthy-eating/basics/nutrition-basics/hlv-20049477",
+  pcos: "https://www.mayoclinic.org/diseases-conditions/pcos/symptoms-causes/syc-20353439",
+  thyroid: "https://www.mayoclinic.org/diseases-conditions/hypothyroidism/symptoms-causes/syc-20350284",
+  migraine: "https://www.mayoclinic.org/diseases-conditions/migraine-headache/symptoms-causes/syc-20360201",
+  cancer: "https://www.mayoclinic.org/diseases-conditions/cancer/symptoms-causes/syc-20370588",
+  stroke: "https://www.mayoclinic.org/diseases-conditions/stroke/symptoms-causes/syc-20350113",
+  copd: "https://www.mayoclinic.org/diseases-conditions/copd/symptoms-causes/syc-20353679",
+  anemia: "https://www.mayoclinic.org/diseases-conditions/anemia/symptoms-causes/syc-20351360",
+  menopause: "https://www.mayoclinic.org/diseases-conditions/menopause/symptoms-causes/syc-20353397",
+  osteoporosis: "https://www.mayoclinic.org/diseases-conditions/osteoporosis/symptoms-causes/syc-20351968",
+};
+
+// ── SHARED UI ──────────────────────────────────────────────────────────────
+function Btn({ children, onClick, disabled, color = C.teal, outline, style = {} }) {
+  return (
+    <button onClick={onClick} disabled={disabled} style={{
+      padding: "11px 24px", borderRadius: 100, border: outline ? `1.5px solid ${color}` : "none",
+      background: outline ? "transparent" : disabled ? C.gray200 : color,
+      color: outline ? color : C.white, cursor: disabled ? "not-allowed" : "pointer",
+      fontSize: 14, fontFamily: "inherit", fontWeight: 500, transition: "opacity 0.15s", ...style
+    }}>{children}</button>
+  );
+}
+
+function Card({ children, style = {}, color = C.white, onClick }) {
+  return <div onClick={onClick} style={{ background: color, borderRadius: 14, padding: "1.25rem", border: `1px solid ${C.border}`, ...style }}>{children}</div>;
+}
+
+function Input({ label, value, onChange, type = "text", placeholder }) {
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {label && <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 500, color: C.gray600 }}>{label}</p>}
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 14, fontFamily: "inherit", color: C.text, background: C.gray50, boxSizing: "border-box", outline: "none" }} />
+    </div>
+  );
+}
+
+// ── CONSENT DIALOG ─────────────────────────────────────────────────────────
+
+function RecordingConsentDialog({ onAccept, onDecline }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}>
+      <div style={{ background: "#fff", borderRadius: 16, padding: "2rem", maxWidth: 440, width: "100%" }}>
+        <div style={{ textAlign: "center", marginBottom: "1.25rem" }}>
+          <div style={{ width: 52, height: 52, borderRadius: "50%", background: "#E8F2EF", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+            <span style={{ fontSize: 24 }}>🎙️</span>
+          </div>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 500, color: "#0B2D56" }}>{T("recordingConsent.title", "Before You Record")}</h2>
+        </div>
+
+        <div style={{ background: "#FFF8E8", borderRadius: 10, padding: "12px 14px", marginBottom: "1rem", border: "1px solid rgba(186,117,23,0.25)" }}>
+          <p style={{ margin: 0, fontSize: 13, color: "#854F0B", fontWeight: 500, lineHeight: 1.6 }}>
+            ⚖️ Important Legal Notice
+          </p>
+        </div>
+
+        <p style={{ margin: "0 0 12px", fontSize: 14, lineHeight: 1.7, color: "#5F5E5A" }}>
+          Recording laws vary by location. In many regions, <strong>all parties must consent</strong> to being recorded. By proceeding, you confirm that:
+        </p>
+
+        <div style={{ margin: "0 0 14px" }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
+            <span style={{ color: "#1D9E75", fontSize: 16, marginTop: 1 }}>✓</span>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "#3D524D" }}>
+              <strong>Your healthcare provider is aware and has agreed</strong> to this appointment being recorded.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
+            <span style={{ color: "#1D9E75", fontSize: 16, marginTop: 1 }}>✓</span>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "#3D524D" }}>
+              You have obtained any required consent under the laws of your province, state, or country.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
+            <span style={{ color: "#1D9E75", fontSize: 16, marginTop: 1 }}>✓</span>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "#3D524D" }}>
+              This recording is for your personal health management only and will not be used for any other purpose without consent.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span style={{ color: "#1D9E75", fontSize: 16, marginTop: 1 }}>✓</span>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "#3D524D" }}>
+              Welluma Health Inc is not responsible for any legal issues arising from unauthorized recording of healthcare providers or third parties.
+            </p>
+          </div>
+        </div>
+
+        <p style={{ margin: "0 0 20px", fontSize: 12, lineHeight: 1.6, color: "#9B9A96" }}>
+          By tapping "I Confirm", you acknowledge that you have read and agreed to these terms and take full responsibility for ensuring all required consents have been obtained before recording.
+        </p>
+
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={onDecline} style={{ flex: 1, padding: "11px", background: "#F1EFE8", color: "#5F5E5A", border: "none", borderRadius: 100, cursor: "pointer", fontSize: 14, fontFamily: "inherit", fontWeight: 400 }}>
+            Cancel
+          </button>
+          <button onClick={onAccept} style={{ flex: 2, padding: "11px", background: "#0E7C6B", color: "#fff", border: "none", borderRadius: 100, cursor: "pointer", fontSize: 14, fontFamily: "inherit", fontWeight: 500 }}>
+            I Confirm — Start Recording
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ConsentDialog({ onAccept, onDecline }) {
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}>
+      <div style={{ background: C.white, borderRadius: 16, padding: "2rem", maxWidth: 420, width: "100%" }}>
+        <h2 style={{ margin: "0 0 12px", fontSize: 20, fontWeight: 500, color: C.navy }}>{T("aiConsent.title", "Before we analyze your visit")}</h2>
+        <p style={{ margin: "0 0 10px", fontSize: 14, lineHeight: 1.7, color: C.gray600 }}>To generate your summary, your visit transcript will be sent securely to <strong>Anthropic Claude AI</strong> for processing.</p>
+        <p style={{ margin: "0 0 10px", fontSize: 14, lineHeight: 1.7, color: C.gray600 }}><strong>What is sent:</strong> The text transcript of your visit only.</p>
+        <p style={{ margin: "0 0 10px", fontSize: 14, lineHeight: 1.7, color: C.gray600 }}><strong>Who receives it:</strong> Anthropic (anthropic.com) — a third-party AI service.</p>
+        <p style={{ margin: "0 0 10px", fontSize: 14, lineHeight: 1.7, color: C.gray600 }}><strong>How it is used:</strong> Only to generate your summary. Transcripts are not stored on our servers after processing.</p>
+        <p style={{ margin: "0 0 20px", fontSize: 12, lineHeight: 1.6, color: C.gray400 }}>By tapping "I Agree", you consent to your transcript being sent to Anthropic for AI processing. Please review your transcript and summary for accuracy - speech recognition may misinterpret medical terms, medication names, or proper nouns. View our Privacy Policy at welluma.app/privacy.</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn outline color={C.gray600} onClick={onDecline} style={{ flex: 1 }}>Decline</Btn>
+          <Btn onClick={onAccept} style={{ flex: 2 }}>I Agree</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SHARE DIALOG ───────────────────────────────────────────────────────────
+function ShareDialog({ visit, onClose }) {
+  const shareText = `
+WELLUMA VISIT SUMMARY
+Date: ${new Date(visit.visit_date).toLocaleDateString()}
+Provider: ${visit.provider_name || "Not specified"}
+
+SUMMARY:
+${visit.summary}
+
+RECOMMENDATIONS:
+${(visit.recommendations || []).map((r, i) => `${i + 1}. ${r}`).join("\n")}
+
+MEDICATIONS:
+${(visit.medications || []).length > 0 ? visit.medications.join(", ") : "None mentioned"}
+
+FOLLOW-UP:
+${visit.follow_up || "None specified"}
+
+---
+⚠️ DISCLAIMER: This summary was generated by Welluma AI and is shared at the patient's discretion. It is not a substitute for professional medical advice. Always consult your healthcare provider for medical decisions. The recipient should treat this information with appropriate confidentiality.
+
+Shared via Welluma — welluma.app
+  `.trim();
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Welluma Visit Summary", text: shareText });
+      } catch (e) { }
+    } else {
+      navigator.clipboard.writeText(shareText);
+      alert(T("share.copied", "Summary copied to clipboard!"));
+    }
+    onClose();
+  };
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1.5rem" }}>
+      <div style={{ background: C.white, borderRadius: 16, padding: "2rem", maxWidth: 420, width: "100%" }}>
+        <h2 style={{ margin: "0 0 12px", fontSize: 20, fontWeight: 500, color: C.navy }}>{T("share.title", "Share Visit Summary")}</h2>
+        <div style={{ background: C.amberLight, borderRadius: 10, padding: "12px 14px", marginBottom: 16, border: `1px solid rgba(186,117,23,0.2)` }}>
+          <p style={{ margin: 0, fontSize: 13, color: C.amber, lineHeight: 1.6 }}>
+            ⚠️ <strong>Sharing disclaimer:</strong> You are sharing your personal health information. Please review the transcript and summary for accuracy before sharing - speech recognition may misinterpret medical terms, medication names, or proper nouns. Only share with trusted contacts such as family members or caregivers. The recipient should treat this information with appropriate confidentiality.
+          </p>
+        </div>
+        <p style={{ margin: "0 0 20px", fontSize: 14, color: C.gray600, lineHeight: 1.6 }}>This will share a text summary of your visit including the summary, recommendations, medications, and follow-up instructions.</p>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn outline color={C.gray600} onClick={onClose} style={{ flex: 1 }}>{T("share.cancel", "Cancel")}</Btn>
+          <Btn onClick={handleShare} style={{ flex: 2 }}>{T("share.share", "Share Summary")}</Btn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── AUTH SCREEN ────────────────────────────────────────────────────────────
+
+function PaywallScreen({ onSubscribe, onRestore, loading }) {
+  const C2 = { navy: "#0B2D56", teal: "#0E7C6B", white: "#ffffff", gray: "#F8F7F3" };
+  return (
+    <div style={{ background: C2.navy, minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
+      <img src="/logo.png" alt="Welluma" style={{ width: 80, height: 80, borderRadius: 20, marginBottom: "1rem" }} onError={e => e.target.style.display='none'} />
+      <h1 style={{ color: C2.white, fontSize: "1.8rem", marginBottom: "0.5rem", textAlign: "center" }}>Welluma</h1>
+      <p style={{ color: "rgba(255,255,255,0.7)", textAlign: "center", marginBottom: "2rem", fontSize: "1rem" }}>{T("tagline", "Understand Your Health, One Visit at a Time")}</p>
+      <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 16, padding: "1.5rem", width: "100%", maxWidth: 340, marginBottom: "1.5rem" }}>
+        {[T("paywall.features", null) || ["Record your medical appointments", "Get plain-language AI summaries", "Keep your full visit history", "Add follow-ups to your calendar"]].map(f => (
+          <div key={f} style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
+            <span style={{ color: "#0E7C6B", fontSize: "1.2rem" }}>✓</span>
+            <span style={{ color: C2.white, fontSize: "0.95rem" }}>{f}</span>
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={onSubscribe}
+        disabled={loading}
+        style={{ background: C2.teal, color: C2.white, border: "none", borderRadius: 12, padding: "1rem 2rem", fontSize: "1.1rem", fontWeight: "bold", width: "100%", maxWidth: 340, cursor: "pointer", marginBottom: "1rem" }}
+      >
+        {loading ? "Loading..." : T("paywall.subscribe", "Subscribe — $4.99/month")}
+      </button>
+      <button
+        onClick={onRestore}
+        style={{ background: "transparent", color: "rgba(255,255,255,0.6)", border: "none", fontSize: "0.9rem", cursor: "pointer", marginBottom: "0.5rem" }}
+      >
+        Restore Purchases
+      </button>
+      <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.75rem", textAlign: "center", maxWidth: 300 }}>{T("paywall.disclaimer", "Cancel anytime. Billed monthly through the App Store or Google Play.")}</p>
+    </div>
+  );
+}
+
+function AuthScreen({ onAuth }) {
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [promo, setPromo] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+
+  async function handleEmailAuth() {
+    setLoading(true); setError(""); setMessage("");
+    if (mode === "login") {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) { setError(error.message); }
+      else {
+        const { data: existing } = await supabase.from("profiles").select("id").eq("id", data.user.id).single();
+        if (!existing) {
+          await supabase.from("profiles").insert({ id: data.user.id, email: data.user.email, full_name: data.user.user_metadata?.full_name || email });
+        }
+        onAuth(data.user);
+      }
+    } else {
+      if (!ageConfirmed) { setError("Please confirm you are 18 years of age or older."); setLoading(false); return; }
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
+      if (error) { setError(error.message); }
+      else {
+        if (data.user) {
+          const { error: profileError } = await supabase.from("profiles").insert({ id: data.user.id, email, full_name: name, promo_code_used: promo || null });
+          if (profileError) console.log("Profile creation error:", profileError.message);
+          if (promo) {
+            const { data: pc } = await supabase.from("promo_codes").select("*").eq("code", promo.toUpperCase()).eq("active", true).single();
+            if (pc) {
+              await supabase.from("promo_codes").update({ uses_count: pc.uses_count + 1 }).eq("id", pc.id);
+              await supabase.from("profiles").update({ subscription_status: "promo", trial_end_date: new Date(Date.now() + pc.duration_months * 30 * 24 * 60 * 60 * 1000).toISOString() }).eq("id", data.user.id);
+            }
+          }
+          onAuth(data.user);
+        } else {
+          setMessage("Check your email to confirm your account!");
+        }
+      }
+    }
+    setLoading(false);
+  }
+
+  async function handleAppleLogin() {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "apple", options: { redirectTo: window.location.origin } });
+    if (error) setError(error.message);
+  }
+
+  async function handleGoogleLogin() {
+    const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
+    if (error) setError(error.message);
+  }
+
+  return (
+    <div style={{ fontFamily: "'Georgia', serif", minHeight: "100vh", background: C.navy, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "2rem 1.5rem" }}>
+      <div style={{ marginBottom: "2rem", textAlign: "center" }}>
+        <div style={{ width: 60, height: 60, borderRadius: "50%", background: C.tealMid, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+          <svg width="28" height="28" viewBox="0 0 36 36" fill="none"><path d="M6 20 C9 13, 13 9, 18 16 C23 23, 27 12, 30 16" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" /></svg>
+        </div>
+        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 400, color: C.white, letterSpacing: "-0.5px" }}>Welluma</h1>
+        <p style={{ margin: "4px 0 0", fontSize: 14, color: "rgba(255,255,255,0.55)" }}>{T("tagline", "Understand your health, one visit at a time")}</p>
+      </div>
+
+      <div style={{ background: C.white, borderRadius: 20, padding: "2rem", width: "100%", maxWidth: 400 }}>
+        <div style={{ display: "flex", gap: 4, marginBottom: "1.5rem", background: C.gray100, borderRadius: 100, padding: 4 }}>
+          {["login", "signup"].map(m => (
+            <button key={m} onClick={() => setMode(m)} style={{ flex: 1, padding: "8px", borderRadius: 100, border: "none", background: mode === m ? C.white : "transparent", color: mode === m ? C.navy : C.gray600, cursor: "pointer", fontSize: 14, fontFamily: "inherit", fontWeight: mode === m ? 500 : 400, boxShadow: mode === m ? "0 1px 4px rgba(0,0,0,0.1)" : "none" }}>
+              {m === "login" ? "Sign In" : "Create Account"}
+            </button>
+          ))}
+        </div>
+
+        {mode === "signup" && <Input label="Full Name" value={name} onChange={setName} placeholder="Your name" />}
+        {mode === "signup" && (<div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}><input type="checkbox" checked={ageConfirmed} onChange={e => setAgeConfirmed(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} /><span style={{ fontSize: 13, color: "#5F5E5A", lineHeight: 1.5 }}>I confirm I am <strong>18 years of age or older</strong></span></div>)}
+        <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="your@email.com" />
+        <Input label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
+        
+
+        {error && <p style={{ margin: "0 0 12px", fontSize: 13, color: C.red, background: C.redLight, padding: "8px 12px", borderRadius: 8 }}>{error}</p>}
+        {message && <p style={{ margin: "0 0 12px", fontSize: 13, color: C.teal, background: C.tealLight, padding: "8px 12px", borderRadius: 8 }}>{message}</p>}
+
+        <Btn onClick={handleEmailAuth} disabled={loading} style={{ width: "100%", marginBottom: 12, justifyContent: "center" }}>
+          {loading ? "Please wait..." : mode === "login" ? "Sign In" : "Create Account"}
+        </Btn>
+
+
+
+        <p style={{ margin: "16px 0 0", fontSize: 12, color: C.gray400, textAlign: "center", lineHeight: 1.5 }}>
+          By continuing you agree to our Terms of Service and Privacy Policy at welluma.app/privacy
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ── PROVIDER PICKER ────────────────────────────────────────────────────────
+function ProviderPicker({ userId, selectedId, onSelect, onClose }) {
+  const [providers, setProviders] = useState([]);
+  const [adding, setAdding] = useState(false);
+  const [name, setName] = useState("");
+  const [specialty, setSpecialty] = useState("");
+  const [clinic, setClinic] = useState("");
+
+  useEffect(() => {
+    supabase.from("providers").select("*").eq("user_id", userId).order("name").then(({ data }) => setProviders(data || []));
+  }, [userId]);
+
+  async function addProvider() {
+    if (!name.trim()) return;
+    const { data, error } = await supabase.from("providers").insert({ user_id: userId, name, specialty, clinic }).select().single();
+    if (error) { alert("Error: " + error.message); return; }
+    if (data) setProviders(p => [...p, data]);
+    setName(""); setSpecialty(""); setClinic(""); setAdding(false);
+  }
+
+  return (
+    <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div style={{ background: C.white, borderRadius: "20px 20px 0 0", padding: "2rem", width: "100%", maxWidth: 500, maxHeight: "80vh", overflowY: "auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 500, color: C.navy }}>{T("provider.title", "Select Provider")}</h2>
+          <button onClick={onClose} style={{ border: "none", background: "none", fontSize: 20, cursor: "pointer", color: C.gray400 }}>✕</button>
+        </div>
+
+        {providers.map(p => (
+          <div key={p.id} onClick={() => { onSelect(p); onClose(); }}
+            style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, cursor: "pointer", background: selectedId === p.id ? C.tealLight : C.gray50, border: `1px solid ${selectedId === p.id ? C.teal : C.border}`, marginBottom: 8 }}>
+            <div style={{ width: 38, height: 38, borderRadius: "50%", background: C.tealLight, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: C.teal, fontWeight: 500 }}>
+              {p.name.charAt(0)}
+            </div>
+            <div>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: C.navy }}>{p.name}</p>
+              <p style={{ margin: 0, fontSize: 12, color: C.gray400 }}>{[p.specialty, p.clinic].filter(Boolean).join(" · ") || "No specialty added"}</p>
+            </div>
+          </div>
+        ))}
+
+        {adding ? (
+          <div style={{ background: C.gray50, borderRadius: 12, padding: "1rem", border: `1px solid ${C.border}`, marginTop: 8 }}>
+            <Input label="Provider Name *" value={name} onChange={setName} placeholder="Dr. Jane Smith" />
+            <Input label="Specialty" value={specialty} onChange={setSpecialty} placeholder="Cardiology, Family Medicine..." />
+            <Input label="Clinic / Hospital" value={clinic} onChange={setClinic} placeholder="Mayo Clinic, General Hospital..." />
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn outline color={C.gray600} onClick={() => setAdding(false)} style={{ flex: 1 }}>Cancel</Btn>
+              <Btn onClick={addProvider} style={{ flex: 2 }}>Save Provider</Btn>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setAdding(true)} style={{ width: "100%", padding: "11px", borderRadius: 10, border: `1.5px dashed ${C.gray200}`, background: "transparent", color: C.teal, cursor: "pointer", fontSize: 14, fontFamily: "inherit", marginTop: 8 }}>
+            + Add New Provider
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── VISIT HISTORY ──────────────────────────────────────────────────────────
+function VisitHistory({ userId, onSelectVisit }) {
+  const [visits, setVisits] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase.from("visits").select("*, providers(name, specialty)").eq("user_id", userId).order("visit_date", { ascending: false })
+      .then(({ data }) => { setVisits(data || []); setLoading(false); });
+  }, [userId]);
+
+  async function deleteVisit(e, visitId) {
+    e.stopPropagation();
+    if (window.confirm("Delete this visit summary? This cannot be undone.")) {
+      await supabase.from("visits").delete().eq("id", visitId);
+      setVisits(v => v.filter(visit => visit.id !== visitId));
+    }
+  }
+
+  async function addToCalendar(e, v) {
+    e.stopPropagation();
+    const followUpText = v.follow_up || v.followUp;
+    if (!followUpText) { alert(T("history.noFollowUp", "No follow-up instructions found for this visit.")); return; }
+    const title = "Welluma Follow-Up: " + (v.providers?.name || "Healthcare Provider");
+    const date = v.follow_up_date ? new Date(v.follow_up_date) : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    const endDate = new Date(date.getTime() + 60 * 60 * 1000);
+    try {
+      await CapacitorCalendar.requestFullCalendarAccess();
+      const result = await CapacitorCalendar.createEventWithPrompt({
+        title: title,
+        startDate: date.getTime(),
+        endDate: endDate.getTime(),
+        notes: followUpText
+      });
+      if (result?.result === "saved") {
+        alert(T("history.addedToCalendar", "Added to your calendar!"));
+      }
+    } catch (err) {
+      alert("Could not open calendar: " + (err.message || "Please check calendar permissions in Settings."));
+    }
+  }
+
+  if (loading) return <p style={{ textAlign: "center", color: C.gray400, padding: "3rem 0" }}>{T("history.loading", "Loading visits...")}</p>;
+
+  if (visits.length === 0) return (
+    <div style={{ textAlign: "center", padding: "3rem 1rem" }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
+      <p style={{ color: C.gray400, fontSize: 15 }}>{T("history.noVisits", "No visits yet. Record your first visit to see it here!")}</p>
+    </div>
+  );
+
+  return (
+    <div>
+      {visits.map(v => (
+        <div key={v.id} style={{ borderRadius: 12, border: `1px solid ${C.border}`, background: C.white, marginBottom: 10, overflow: "hidden" }}>
+          <div onClick={() => onSelectVisit(v)} style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "14px", cursor: "pointer" }}>
+            <div style={{ width: 42, height: 42, borderRadius: "50%", background: C.tealLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <span style={{ fontSize: 18 }}>🩺</span>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: "0 0 3px", fontSize: 14, fontWeight: 500, color: C.navy }}>{v.providers?.name || "Unknown Provider"}</p>
+              <p style={{ margin: "0 0 3px", fontSize: 12, color: C.gray400 }}>{v.providers?.specialty || "General"} · {new Date(v.visit_date).toLocaleDateString()}</p>
+              <p style={{ margin: 0, fontSize: 13, color: C.gray600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{v.summary?.substring(0, 80)}...</p>
+            </div>
+            <span style={{ color: C.gray200, fontSize: 18 }}>›</span>
+          </div>
+          <div style={{ display: "flex", borderTop: `1px solid ${C.border}` }}>
+            <button onClick={(e) => addToCalendar(e, v)} style={{ flex: 1, padding: "10px", background: C.tealLight, border: "none", borderRight: `1px solid ${C.border}`, cursor: "pointer", fontSize: 12, color: C.teal, fontFamily: "inherit", fontWeight: 500 }}>
+              📅 Add to Calendar
+            </button>
+            <button onClick={(e) => deleteVisit(e, v.id)} style={{ flex: 1, padding: "10px", background: "#FFF5F5", border: "none", cursor: "pointer", fontSize: 12, color: C.red, fontFamily: "inherit", fontWeight: 500 }}>
+              🗑️ Delete Visit
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── NOTIFICATIONS ──────────────────────────────────────────────────────────
+function scheduleNotification(followUpText, visitId) {
+  if (!followUpText) return;
+  const lower = followUpText.toLowerCase();
+  let days = 0;
+  if (lower.includes("week")) {
+    const match = lower.match(/(\d+)\s*week/);
+    days = match ? parseInt(match[1]) * 7 : 7;
+  } else if (lower.includes("month")) {
+    const match = lower.match(/(\d+)\s*month/);
+    days = match ? parseInt(match[1]) * 30 : 30;
+  } else if (lower.includes("day")) {
+    const match = lower.match(/(\d+)\s*day/);
+    days = match ? parseInt(match[1]) : 7;
+  }
+  if (days > 0) {
+    const followUpDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
+    supabase.from("visits").update({ follow_up_date: followUpDate.toISOString() }).eq("id", visitId);
+    if ("Notification" in window && Notification.permission === "granted") {
+      setTimeout(() => {
+        new Notification("Welluma Follow-Up Reminder", {
+          body: `Time to follow up with your provider! ${followUpText}`,
+          icon: "/logo192.png"
+        });
+      }, days * 24 * 60 * 60 * 1000);
+    }
+    return followUpDate;
+  }
+}
+
+// ── MAIN APP ───────────────────────────────────────────────────────────────
+const TABS = ["Record", "Summary", "Resources", "History", "Settings"];
+
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [tab, setTab] = useState(0);
+  const [recording, setRecording] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [demoText, setDemoText] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState("");
+  const [seconds, setSeconds] = useState(0);
+  const [mayoLinks, setMayoLinks] = useState([]);
+  const [mode, setMode] = useState("demo");
+  const [showConsent, setShowConsent] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [showRecordingConsent, setShowRecordingConsent] = useState(false);
+  const [pendingText, setPendingText] = useState("");
+  const [selectedProvider, setSelectedProvider] = useState(null);
+  const [showProviderPicker, setShowProviderPicker] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [currentVisit, setCurrentVisit] = useState(null);
+  const [selectedHistoryVisit, setSelectedHistoryVisit] = useState(null);
+  const [notifPermission, setNotifPermission] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subLoading, setSubLoading] = useState(true);
+  const [offerings, setOfferings] = useState(null);
+
+  const mediaRef = useRef(null);
+  const recognitionRef = useRef(null);
+  const timerRef = useRef(null);
+  const liveTextRef = useRef("");
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    const initRC = async () => {
+      try {
+        const { Capacitor } = await import("@capacitor/core");
+        const platform = Capacitor.getPlatform();
+        await Purchases.configure({
+          apiKey: platform === "android"
+            ? "goog_cNPlnSYIoWRFaYDwuzjpPYPkQiV"
+            : "appl_aFDiutgFAKLrLKhYmgNcskortxF"
+        });
+        const { customerInfo } = await Purchases.getCustomerInfo();
+        const active = customerInfo.entitlements.active;
+        setIsSubscribed(!!active["Premium"] || !!active["Welluma –Understand Your Visit Pro"]);
+      } catch(e) { console.log("RC error", e); }
+      setSubLoading(false);
+    };
+    initRC();
+    if ("Notification" in window) {
+      Notification.requestPermission().then(p => setNotifPermission(p === "granted"));
+    }
+    return () => subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => () => { stopRecording(); }, []);
+
+  function startTimer() { setSeconds(0); timerRef.current = setInterval(() => setSeconds(s => s + 1), 1000); }
+  function stopTimer() { clearInterval(timerRef.current); }
+  const fmt = s => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
+
+  async function startRecording() {
+    setError(""); liveTextRef.current = ""; setTranscript("");
+    try {
+      const { SpeechRecognition } = await import("@capacitor-community/speech-recognition");
+      const permission = await SpeechRecognition.requestPermissions();
+      if (permission.speechRecognition !== "granted") { setError("Microphone access denied. Please allow in Settings."); return; }
+      await SpeechRecognition.start({ language: "en-US", partialResults: true, popup: false });
+      SpeechRecognition.addListener("partialResults", (data) => {
+        if (data.matches && data.matches.length > 0) { liveTextRef.current = data.matches[0]; setTranscript(data.matches[0]); }
+      });
+      setRecording(true); startTimer();
+    } catch (e) {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (SR) {
+        const rec = new SR();
+        rec.continuous = true; rec.interimResults = true; rec.lang = "en-US";
+        rec.onresult = (ev) => {
+          let final = "";
+          for (let i = 0; i < ev.results.length; i++) { if (ev.results[i].isFinal) final += ev.results[i][0].transcript + " "; }
+          liveTextRef.current = final; setTranscript(final);
+        };
+        rec.start(); recognitionRef.current = rec;
+        setRecording(true); startTimer();
+      } else { setError("Microphone access denied. Please allow microphone access or use Demo Mode."); }
+    }
+  }
+
+  async function stopRecording() {
+    try { const { SpeechRecognition } = await import("@capacitor-community/speech-recognition"); await SpeechRecognition.stop(); } catch (e) { }
+    recognitionRef.current?.stop();
+    mediaRef.current?.getTracks().forEach(t => t.stop());
+    setRecording(false); stopTimer();
+  }
+
+  function analyze(text) {
+    if (!text.trim()) { setError("No transcript to analyze."); return; }
+    setPendingText(text); setShowConsent(true);
+  }
+
+  async function proceedWithAnalysis(text) {
+    setLoading(true); setError("");
+    try {
+      const r = await callClaude(text);
+      setResult(r);
+      const links = r.resources && r.resources.length > 0 ? r.resources.slice(0, 8) :
+        Object.entries(MAYO_TOPICS).filter(([k]) => text.toLowerCase().includes(k)).map(([k, url]) => ({ label: k.replace(/\b\w/g, c => c.toUpperCase()), url })).slice(0, 6);
+      setMayoLinks(links);
+
+      if (user) {
+        const visitData = {
+          user_id: user.id,
+          provider_id: selectedProvider?.id || null,
+          transcript: text,
+          summary: r.summary,
+          recommendations: r.recommendations || [],
+          medications: r.medications || [],
+          follow_up: r.followUp,
+          resources: links,
+          visit_date: new Date().toISOString(),
+        };
+        const { data: savedVisit } = await supabase.from("visits").insert(visitData).select().single();
+        if (savedVisit) {
+          setCurrentVisit({ ...savedVisit, provider_name: selectedProvider?.name });
+          const followUpDate = scheduleNotification(r.followUp, savedVisit.id);
+          if (followUpDate) {
+            setCurrentVisit(v => ({ ...v, follow_up_date: followUpDate }));
+          }
+        }
+      }
+      setTab(1);
+    } catch (e) { setError("Analysis failed. Please try again."); }
+    setLoading(false);
+  }
+
+
+  async function handleSubscribe() {
+    try {
+      setSubLoading(true);
+      const { Capacitor } = await import("@capacitor/core");
+      const platform = Capacitor.getPlatform();
+      const offeringsResult = await Purchases.getOfferings();
+      const offering = offeringsResult.current;
+      if (!offering) { alert(T("purchase.noOfferings", "No offerings available. Please try again.")); setSubLoading(false); return; }
+      const pkg = offering.availablePackages[0];
+      if (!pkg) { alert(T("purchase.noPackages", "No packages available.")); setSubLoading(false); return; }
+      const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+      const active = customerInfo.entitlements.active;
+      setIsSubscribed(!!active["Premium"] || !!active["Welluma –Understand Your Visit Pro"]);
+    } catch(e) {
+      if (!e.userCancelled) alert("Purchase failed: " + (e.message || "Please try again."));
+    }
+    setSubLoading(false);
+  }
+
+  async function handleRestore() {
+    try {
+      setSubLoading(true);
+      const { customerInfo } = await Purchases.restorePurchases();
+      const active = customerInfo.entitlements.active;
+      const subscribed = !!active["Premium"] || !!active["Welluma –Understand Your Visit Pro"];
+      setIsSubscribed(subscribed);
+      if (!subscribed) alert(T("purchase.noSubscription", "No active subscription found."));
+    } catch(e) { alert("Restore failed: " + (e.message || "Please try again.")); }
+    setSubLoading(false);
+  }
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setUser(null); setResult(null); setCurrentVisit(null); setTranscript(""); setTab(0);
+  }
+
+  if (authLoading) return <div style={{ background: C.navy, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: C.white }}>Loading...</p></div>;
+  if (!user) return <AuthScreen onAuth={setUser} />;
+  if (subLoading) return <div style={{ background: "#0B2D56", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "#ffffff" }}>Loading...</p></div>;
+  if (!isSubscribed) return <PaywallScreen onSubscribe={handleSubscribe} onRestore={handleRestore} loading={subLoading} />;
+
+  const displayVisit = selectedHistoryVisit || currentVisit;
+
+  return (
+    <div style={{ fontFamily: "'Georgia', serif", maxWidth: 760, margin: "0 auto", paddingBottom: "3rem" }}>
+      {showRecordingConsent && <RecordingConsentDialog
+      onAccept={() => { setShowRecordingConsent(false); startRecording(); }}
+      onDecline={() => setShowRecordingConsent(false)}
+    />}
+    {showConsent && <ConsentDialog onAccept={() => { setShowConsent(false); proceedWithAnalysis(pendingText); }} onDecline={() => { setShowConsent(false); setPendingText(""); }} />}
+      {showProviderPicker && <ProviderPicker userId={user.id} selectedId={selectedProvider?.id} onSelect={setSelectedProvider} onClose={() => setShowProviderPicker(false)} />}
+      {showShare && displayVisit && <ShareDialog visit={displayVisit} onClose={() => setShowShare(false)} />}
+
+      <div style={{ background: C.navy, padding: "1.75rem 1.5rem 1.25rem", borderRadius: "0 0 24px 24px", marginBottom: "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.tealMid, display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg width="18" height="18" viewBox="0 0 36 36" fill="none"><path d="M6 20 C9 13, 13 9, 18 16 C23 23, 27 12, 30 16" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" /></svg>
+            </div>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 400, color: C.white, letterSpacing: "-0.3px" }}>Welluma</h1>
+              <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,0.5)" }}>Understand your health</p>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6 }}><a href="https://wellumahealth.com/privacy.html" target="_blank" rel="noopener noreferrer" style={{ background: "rgba(255,255,255,0.1)", borderRadius: 20, padding: "6px 14px", color: "rgba(255,255,255,0.7)", fontSize: 12, textDecoration: "none" }}>Privacy</a><button onClick={handleSignOut} style={{ background: "rgba(255,255,255,0.1)", border: "none", borderRadius: 20, padding: "6px 14px", color: "rgba(255,255,255,0.7)", cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}>Sign Out</button></div>
+        </div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {TABS.map((t, i) => (
+            <button key={t} onClick={() => { setTab(i); setSelectedHistoryVisit(null); }} style={{ padding: "6px 14px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontFamily: "inherit", background: tab === i ? "rgba(255,255,255,0.18)" : "transparent", color: tab === i ? C.white : "rgba(255,255,255,0.5)", fontWeight: tab === i ? 500 : 400 }}>{t}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: "0 1.25rem" }}>
+
+        {/* ── RECORD TAB ── */}
+        {tab === 0 && (
+          <div>
+            <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
+              {["demo", "record"].map(m => (
+                <button key={m} onClick={() => setMode(m)} style={{ padding: "7px 16px", borderRadius: 20, border: `1.5px solid ${mode === m ? C.tealMid : C.border}`, background: mode === m ? C.tealLight : C.white, color: mode === m ? C.teal : C.gray600, cursor: "pointer", fontSize: 13, fontFamily: "inherit", fontWeight: mode === m ? 500 : 400 }}>
+                  {m === "demo" ? "Demo Mode" : "Live Recording"}
+                </button>
+              ))}
+            </div>
+
+            <div onClick={() => setShowProviderPicker(true)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 12, border: `1px solid ${C.border}`, background: C.white, marginBottom: "1rem", cursor: "pointer" }}>
+              <div style={{ width: 36, height: 36, borderRadius: "50%", background: C.tealLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ fontSize: 16 }}>👨‍⚕️</span>
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: C.navy }}>{selectedProvider ? selectedProvider.name : "Select Provider"}</p>
+                <p style={{ margin: 0, fontSize: 11, color: C.gray400 }}>{selectedProvider ? selectedProvider.specialty || "Tap to edit" : "Tap to add your provider"}</p>
+              </div>
+              <span style={{ color: C.gray200, fontSize: 16 }}>›</span>
+            </div>
+
+            {mode === "demo" ? (
+              <div>
+                <div style={{ background: C.blueLight, borderRadius: 12, padding: "1rem", marginBottom: "1rem", border: `1px solid ${C.border}` }}>
+                  <p style={{ margin: 0, fontSize: 13, color: C.blue }}>Demo mode uses a sample healthcare provider visit transcript. You can also paste your own transcript below.</p>
+                </div>
+                <textarea value={demoText || "Good morning, how are you feeling today? I've been having some fatigue and my blood pressure readings at home have been around 145 over 90. Let me check that now. Yes, I'm seeing 148 over 92 which is Stage 2 hypertension. We need to make some changes. I want you to start on lisinopril 10mg once daily. Make sure you take it at the same time every day. Also I want you to reduce your sodium intake to under 2000 milligrams per day and start doing 30 minutes of moderate exercise at least 5 days a week. Walking is fine. Also your cholesterol LDL came back at 145 which is borderline high. I'd like to see you back in 6 weeks."} onChange={e => setDemoText(e.target.value)}
+                  style={{ width: "100%", minHeight: 160, borderRadius: 10, border: `1px solid ${C.border}`, padding: "12px", fontSize: 14, fontFamily: "inherit", resize: "vertical", boxSizing: "border-box", background: C.gray50 }} />
+                <button onClick={() => analyze(demoText || "Good morning, how are you feeling today? I've been having some fatigue and my blood pressure readings at home have been around 145 over 90. Let me check that now. Yes, I'm seeing 148 over 92 which is Stage 2 hypertension. We need to make some changes. I want you to start on lisinopril 10mg once daily. Make sure you take it at the same time every day. Also I want you to reduce your sodium intake to under 2000 milligrams per day and start doing 30 minutes of moderate exercise at least 5 days a week. Walking is fine. Also your cholesterol LDL came back at 145 which is borderline high. I'd like to see you back in 6 weeks.")} disabled={loading}
+                  style={{ marginTop: 12, padding: "11px 28px", background: loading ? C.gray200 : C.teal, color: C.white, border: "none", borderRadius: 24, cursor: loading ? "not-allowed" : "pointer", fontSize: 15, fontFamily: "inherit", fontWeight: 500 }}>
+                  {loading ? "Analyzing…" : "Analyze Visit ↗"}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div style={{ background: recording ? C.redLight : C.gray50, borderRadius: 16, padding: "2rem", textAlign: "center", border: `2px dashed ${recording ? C.red : C.gray200}`, marginBottom: "1rem" }}>
+                  {recording ? (
+                    <>
+                      <div style={{ width: 60, height: 60, borderRadius: "50%", background: C.red, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
+                        <span style={{ fontSize: 24 }}>🎙️</span>
+                      </div>
+                      <p style={{ fontSize: 26, fontWeight: 500, color: C.red, margin: "0 0 4px", fontFamily: "monospace" }}>{fmt(seconds)}</p>
+                      <p style={{ fontSize: 14, color: C.gray600, margin: "0 0 1.5rem" }}>Recording in progress…</p>
+                      <button onClick={stopRecording} style={{ padding: "10px 28px", background: C.red, color: C.white, border: "none", borderRadius: 24, cursor: "pointer", fontSize: 15, fontFamily: "inherit", fontWeight: 500 }}>Stop Recording</button>
+                    </>
+                  ) : (
+                    <>
+                      <div style={{ width: 60, height: 60, borderRadius: "50%", background: C.tealLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1rem" }}>
+                        <span style={{ fontSize: 24 }}>🎙️</span>
+                      </div>
+                      <p style={{ fontSize: 15, color: C.gray600, margin: "0 0 1.5rem" }}>Tap to start recording your visit</p>
+                      <button onClick={() => setShowRecordingConsent(true)} style={{ padding: "10px 28px", background: C.teal, color: C.white, border: "none", borderRadius: 24, cursor: "pointer", fontSize: 15, fontFamily: "inherit", fontWeight: 500 }}>Start Recording</button>
+                    </>
+                  )}
+                </div>
+                {transcript && (
+                  <div style={{ background: C.gray50, borderRadius: 10, padding: "1rem", border: `1px solid ${C.border}`, marginBottom: "1rem", maxHeight: 140, overflowY: "auto" }}>
+                    <p style={{ margin: "0 0 4px", fontSize: 11, color: C.gray400, fontWeight: 500, textTransform: "uppercase", letterSpacing: "0.5px" }}>Live Transcript</p>
+                    <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: C.text }}>{transcript}</p>
+                  </div>
+                )}
+                {!recording && transcript && (
+                  <button onClick={() => analyze(transcript)} disabled={loading} style={{ padding: "11px 28px", background: loading ? C.gray200 : C.teal, color: C.white, border: "none", borderRadius: 24, cursor: loading ? "not-allowed" : "pointer", fontSize: 15, fontFamily: "inherit", fontWeight: 500 }}>
+                    {loading ? "Analyzing…" : "Analyze Visit ↗"}
+                  </button>
+                )}
+              </div>
+            )}
+            {error && <div style={{ marginTop: "1rem", padding: "10px 14px", background: C.redLight, borderRadius: 8, color: C.red, fontSize: 14 }}>{error}</div>}
+          </div>
+        )}
+
+        {/* ── SUMMARY TAB ── */}
+        {tab === 1 && (
+          <div>
+            {selectedHistoryVisit && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: "1rem" }}>
+                <button onClick={() => { setSelectedHistoryVisit(null); setTab(3); }} style={{ border: "none", background: C.gray100, borderRadius: 20, padding: "6px 14px", cursor: "pointer", fontSize: 13, fontFamily: "inherit", color: C.gray600 }}>← Back to History</button>
+                <span style={{ fontSize: 13, color: C.gray400 }}>{new Date(selectedHistoryVisit.visit_date).toLocaleDateString()}</span>
+              </div>
+            )}
+
+            {!result && !selectedHistoryVisit && (
+              <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
+                <p style={{ color: C.gray400, fontSize: 15 }}>No summary yet — record or paste a transcript first.</p>
+                <button onClick={() => setTab(0)} style={{ marginTop: "1rem", padding: "9px 22px", background: C.teal, color: C.white, border: "none", borderRadius: 20, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Go to Record</button>
+              </div>
+            )}
+
+            {(result || selectedHistoryVisit) && (() => {
+              const v = selectedHistoryVisit || result;
+              const recs = v.recommendations || [];
+              const meds = v.medications || [];
+              return (
+                <div>
+                  {displayVisit?.follow_up_date && (
+                    <Card color={C.tealLight} style={{ marginBottom: "1rem", border: `1px solid rgba(14,124,107,0.2)`, cursor: "pointer" }}
+                      onClick={async () => {
+                        const title = "Welluma Follow-Up: " + (displayVisit.providers?.name || v.providers?.name || "Healthcare Provider");
+                        const notes = (v.followUp || v.follow_up || "Follow up appointment") + " (via Welluma)";
+                        const date = new Date(displayVisit.follow_up_date);
+                        const endDate = new Date(date.getTime() + 60 * 60 * 1000);
+                        try {
+                          await CapacitorCalendar.requestFullCalendarAccess();
+                          const result = await CapacitorCalendar.createEventWithPrompt({
+                            title: title,
+                            startDate: date.getTime(),
+                            endDate: endDate.getTime(),
+                            notes: notes
+                          });
+                          if (result?.result === "saved") alert("Added to your calendar!");
+                        } catch (err) {
+                          alert("Could not open calendar: " + (err.message || "Please check calendar permissions in Settings."));
+                        }
+                      }}>
+                      <p style={{ margin: 0, fontSize: 13, color: C.teal }}>
+                        📅 <strong>Follow-up reminder set</strong> for {new Date(displayVisit.follow_up_date).toLocaleDateString()} — tap to add to your calendar →
+                      </p>
+                    </Card>
+                  )}
+
+                  <Card style={{ marginBottom: "1rem" }}>
+                    <h2 style={{ margin: "0 0 10px", fontSize: 16, fontWeight: 500, color: C.navy }}>What Your Healthcare Provider Discussed</h2>
+                    <div style={{ background: "#FFF8E8", borderRadius: 8, padding: "8px 12px", marginBottom: 10, border: "1px solid rgba(186,117,23,0.25)" }}><p style={{ margin: 0, fontSize: 12, color: "#854F0B", lineHeight: 1.5 }}>This AI-generated summary is for personal reference only and is not medical advice. Always follow the guidance of your healthcare provider. Please review for accuracy.</p></div>
+                    <p style={{ margin: 0, fontSize: 15, lineHeight: 1.75, color: C.text }}>{v.summary}</p>
+                  </Card>
+
+                  {recs.length > 0 && (
+                    <Card color={C.tealLight} style={{ marginBottom: "1rem", border: `1px solid rgba(14,124,107,0.2)` }}>
+                      <h2 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 500, color: C.teal }}>Provider Recommendations</h2>
+                      {recs.map((r, i) => (
+                        <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: 10 }}>
+                          <div style={{ minWidth: 22, height: 22, borderRadius: "50%", background: C.tealMid, color: C.white, fontSize: 12, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 500, marginTop: 1 }}>{i + 1}</div>
+                          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: C.text }}>{r}</p>
+                        </div>
+                      ))}
+                    </Card>
+                  )}
+
+                  {meds.length > 0 && (
+                    <Card color={C.amberLight} style={{ marginBottom: "1rem", border: `1px solid rgba(186,117,23,0.2)` }}>
+                      <h2 style={{ margin: "0 0 12px", fontSize: 16, fontWeight: 500, color: C.amber }}>Medications Mentioned</h2>
+                      {meds.map((m, i) => (
+                        <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+                          <span style={{ color: C.amber }}>💊</span>
+                          <span style={{ fontSize: 14, color: C.text }}>{m}</span>
+                        </div>
+                      ))}
+                    </Card>
+                  )}
+
+                  {(v.followUp || v.follow_up) && (
+                    <Card color={C.blueLight} style={{ marginBottom: "1rem", border: `1px solid rgba(24,95,165,0.2)` }}>
+                      <h2 style={{ margin: "0 0 8px", fontSize: 16, fontWeight: 500, color: C.blue }}>Follow-Up Instructions</h2>
+                      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: C.text }}>{v.followUp || v.follow_up}</p>
+                    </Card>
+                  )}
+
+                  <button onClick={async () => {
+                      const confirmed = window.confirm("Are you sure you want to share this medical summary? Only share with trusted contacts such as family members or caregivers.");
+                      if (confirmed) setShowShare(true);
+                    }} style={{ width: "100%", padding: "12px", background: C.navy, color: C.white, border: "none", borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", fontWeight: 500, marginBottom: 8 }}>
+                    📤 Share This Summary
+                  </button>
+                  <button onClick={() => setTab(2)} style={{ width: "100%", padding: "12px", background: C.teal, color: C.white, border: "none", borderRadius: 12, cursor: "pointer", fontSize: 15, fontFamily: "inherit", fontWeight: 500 }}>
+                    View Learning Resources →
+                  </button>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ── RESOURCES TAB ── */}
+        {tab === 2 && (
+          <div>
+            {mayoLinks.length > 0 ? (
+              <>
+                <p style={{ fontSize: 14, color: C.gray600, marginBottom: "1rem" }}>Based on your visit, here are trusted resources:</p>
+                {mayoLinks.map((link, i) => (
+                  <a key={i} href={link.url} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 12, padding: "1rem", background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, marginBottom: 10, textDecoration: "none" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: C.tealLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <span style={{ fontSize: 18 }}>📖</span>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <p style={{ margin: "0 0 2px", fontSize: 15, fontWeight: 500, color: C.navy }}>{link.label}</p>
+                      <p style={{ margin: 0, fontSize: 12, color: C.gray400 }}>{
+                        link.url?.includes("camh.ca") ? "CAMH · Centre for Addiction and Mental Health" :
+                        link.url?.includes("cheo.on.ca") ? "CHEO · Children's Hospital of Eastern Ontario" :
+                        link.url?.includes("caringforkids.cps.ca") ? "Canadian Paediatric Society" :
+                        link.url?.includes("uhn.ca") ? "University Health Network" :
+                        link.url?.includes("drugs.com") ? "Drugs.com · Medication Information" :
+                        link.url?.includes("medscape.com") ? "Medscape · Clinical Information" :
+                        link.url?.includes("heart.org") ? "American Heart Association" :
+                        link.url?.includes("diabetes.ca") ? "Diabetes Canada" :
+                        link.url?.includes("pcosaa.org") ? "PCOS Awareness Association" :
+                        link.url?.includes("medlineplus.gov") ? "NIH MedlinePlus" :
+                        link.url?.includes("cdc.gov") ? "CDC · Trusted Health Information" :
+                        link.url?.includes("healthline.com") ? "Healthline" :
+                        "Mayo Clinic · Trusted Health Information"
+                      }</p>
+                    </div>
+                    <span style={{ color: C.gray200 }}>↗</span>
+                  </a>
+                ))}
+                <Card color={C.gray50} style={{ marginTop: "1.5rem" }}>
+                  <p style={{ margin: "0 0 8px", fontSize: 13, fontWeight: 500, color: C.text }}>Additional trusted sources</p>
+                  {[{ name: "CDC Health Information", url: "https://www.cdc.gov/health-topics.html" }, { name: "MedlinePlus (NIH)", url: "https://medlineplus.gov/" }, { name: "Healthline", url: "https://www.healthline.com/" }].map((s, i) => (
+                    <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{ display: "block", fontSize: 14, color: C.blue, textDecoration: "none", marginBottom: 6 }}>→ {s.name}</a>
+                  ))}
+                </Card>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: "4rem 1rem" }}>
+                <p style={{ color: C.gray400, fontSize: 15 }}>Resources appear after analyzing a visit.</p>
+                <button onClick={() => setTab(0)} style={{ marginTop: "1rem", padding: "9px 22px", background: C.teal, color: C.white, border: "none", borderRadius: 20, cursor: "pointer", fontSize: 14, fontFamily: "inherit" }}>Go to Record</button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── SETTINGS TAB ── */}
+        {tab === 4 && (
+          <div>
+            <h2 style={{ margin: "0 0 1.5rem", fontSize: 18, fontWeight: 500, color: C.navy }}>Settings</h2>
+
+            <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: "1rem" }}>
+              <p style={{ margin: 0, padding: "10px 16px", fontSize: 11, fontWeight: 500, color: C.gray400, textTransform: "uppercase", letterSpacing: "1px", background: C.gray50, borderBottom: `1px solid ${C.border}` }}>Account</p>
+              <div style={{ padding: "14px 16px", borderBottom: `1px solid ${C.border}` }}>
+                <p style={{ margin: "0 0 2px", fontSize: 14, fontWeight: 500, color: C.navy }}>Email</p>
+                <p style={{ margin: 0, fontSize: 13, color: C.gray400 }}>{user?.email}</p>
+              </div>
+              <button onClick={handleSignOut} style={{ width: "100%", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 14, color: C.teal, fontFamily: "inherit", textAlign: "left" }}>Sign Out</button>
+            </div>
+
+            <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: "1rem" }}>
+              <p style={{ margin: 0, padding: "10px 16px", fontSize: 11, fontWeight: 500, color: C.gray400, textTransform: "uppercase", letterSpacing: "1px", background: C.gray50, borderBottom: `1px solid ${C.border}` }}>Legal & Privacy</p>
+              <a href="https://wellumahealth.com/privacy.html" target="_blank" rel="noopener noreferrer" style={{ display: "block", padding: "14px 16px", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.navy, textDecoration: "none" }}>Privacy Policy ↗</a>
+              <a href="https://wellumahealth.com/terms.html" target="_blank" rel="noopener noreferrer" style={{ display: "block", padding: "14px 16px", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.navy, textDecoration: "none" }}>Terms of Service ↗</a>
+              <div style={{ padding: "14px 16px" }}>
+                <p style={{ margin: "0 0 6px", fontSize: 14, fontWeight: 500, color: C.navy }}>Data Storage</p>
+                <p style={{ margin: 0, fontSize: 12, color: C.gray400, lineHeight: 1.6 }}>Your data is stored on Supabase servers in the United States (us-east-1). All data is encrypted in transit and at rest. Governed by Canadian privacy law (PIPEDA/PHIPA).</p>
+              </div>
+            </div>
+
+            <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: "1rem" }}>
+              <p style={{ margin: 0, padding: "10px 16px", fontSize: 11, fontWeight: 500, color: C.gray400, textTransform: "uppercase", letterSpacing: "1px", background: C.gray50, borderBottom: `1px solid ${C.border}` }}>Support</p>
+              <a href="mailto:support@wellumahealth.com" style={{ display: "block", padding: "14px 16px", borderBottom: `1px solid ${C.border}`, fontSize: 14, color: C.navy, textDecoration: "none" }}>Contact Support ↗</a>
+              <a href="https://wellumahealth.com" target="_blank" rel="noopener noreferrer" style={{ display: "block", padding: "14px 16px", fontSize: 14, color: C.navy, textDecoration: "none" }}>Visit Website ↗</a>
+            </div>
+
+            <div style={{ background: C.redLight, borderRadius: 14, border: `1px solid rgba(163,45,45,0.2)`, overflow: "hidden", marginBottom: "2rem" }}>
+              <p style={{ margin: 0, padding: "10px 16px", fontSize: 11, fontWeight: 500, color: C.red, textTransform: "uppercase", letterSpacing: "1px", background: "rgba(163,45,45,0.05)", borderBottom: `1px solid rgba(163,45,45,0.1)` }}>Danger Zone</p>
+              <button onClick={async () => {
+                if (window.confirm("Permanently delete your account and ALL visit data? This cannot be undone.")) {
+                  try {
+                    await supabase.from("visits").delete().eq("user_id", user.id);
+                    await supabase.from("providers").delete().eq("user_id", user.id);
+                    await supabase.from("profiles").delete().eq("id", user.id);
+                    await supabase.auth.signOut();
+                    alert("Your account and all data have been permanently deleted.");
+                  } catch(e) {
+                    alert("Error deleting account. Please contact support@wellumahealth.com");
+                  }
+                }
+              }} style={{ width: "100%", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 14, color: C.red, fontFamily: "inherit", textAlign: "left", fontWeight: 500 }}>Delete My Account & All Data</button>
+            </div>
+
+            <p style={{ textAlign: "center", fontSize: 12, color: C.gray400 }}>Welluma Health Inc. · Version 1.1</p>
+            <p style={{ textAlign: "center", fontSize: 11, color: C.gray200, marginTop: 4 }}>Created by a Nurse Practitioner 🩺</p>
+          </div>
+        )}
+
+        {/* ── HISTORY TAB ── */}
+        {tab === 3 && (
+          <div>
+            <h2 style={{ margin: "0 0 1rem", fontSize: 18, fontWeight: 500, color: C.navy }}>Visit History</h2>
+            <VisitHistory userId={user.id} onSelectVisit={(v) => { setSelectedHistoryVisit(v); setTab(1); }} />
+          </div>
+        )}
+
+      </div>
+      <style>{`button:hover{opacity:0.88} a:hover{opacity:0.85}`}</style>
+    </div>
+  );
+}
