@@ -32,7 +32,8 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.0.0",
-    "cors": "^2.8.5"
+    "resend": "^6.16.0"
   }
 }
