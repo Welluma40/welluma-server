@@ -1,0 +1,20 @@
+# Environment variables - NEVER commit these
+.env
+.env.local
+.env.production
+
+# Dependencies
+node_modules/
+
+# Build
+build/
+
+# iOS
+ios/App/Pods/
+
+# Android
+android/.gradle/
+android/app/build/
+
+# Mac
+.DS_Store
