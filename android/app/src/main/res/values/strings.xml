@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Welluma</string>
+    <string name="title_activity_main">Welluma</string>
+    <string name="package_name">com.welluma.health</string>
+    <string name="custom_url_scheme">com.welluma.health</string>
+</resources>
