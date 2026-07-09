@@ -1330,6 +1330,14 @@ function App() {
                     await supabase.from("visits").delete().eq("user_id", user.id);
                     await supabase.from("providers").delete().eq("user_id", user.id);
                     await supabase.from("profiles").delete().eq("id", user.id);
+
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch(process.env.REACT_APP_API_URL + "/delete-account", {
+                      method: "POST",
+                      headers: { "Authorization": `Bearer ${session?.access_token}` },
+                    });
+                    if (!res.ok) throw new Error("Failed to delete account");
+
                     await supabase.auth.signOut();
                     alert("Your account and all data have been permanently deleted.");
                   } catch(e) {
