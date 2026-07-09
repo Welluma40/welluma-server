@@ -972,7 +972,6 @@ function App() {
         const visitData = {
           user_id: user.id,
           provider_id: selectedProvider?.id || null,
-          transcript: text,
           summary: r.summary,
           recommendations: r.recommendations || [],
           medications: r.medications || [],
