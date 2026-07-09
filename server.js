@@ -36,6 +36,33 @@ async function requireAuth(req, res, next) {
   }
 }
 
+// == ADMIN CLIENT ==
+// Uses the service role key, which can delete auth users. Only ever used
+// server-side, inside routes protected by requireAuth, so a user can only
+// ever delete their own account.
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// == DELETE ACCOUNT ==
+// The client deletes visits/providers/profiles rows first, then calls this
+// to remove the actual Supabase Auth user, which requires the service role
+// key and can never be done from the client app itself.
+app.post('/delete-account', requireAuth, async (req, res) => {
+  try {
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(req.user.id);
+    if (error) {
+      console.error('Delete account error:', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Delete account error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.post('/analyze', requireAuth, async (req, res) => {
   const { transcript } = req.body;
   
