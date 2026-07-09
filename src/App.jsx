@@ -215,9 +215,10 @@ Shared via Welluma Health — wellumahealth.com
     if (!providerEmail) { alert("Please enter the provider's email address."); return; }
     setSending(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(process.env.REACT_APP_API_URL + "/send-summary-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
         body: JSON.stringify({
           to: providerEmail,
           providerName: providerName || "Healthcare Provider",
@@ -238,9 +239,10 @@ Shared via Welluma Health — wellumahealth.com
     if (!providerFax) { alert("Please enter the provider's fax number."); return; }
     setSending(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(process.env.REACT_APP_API_URL + "/send-summary-fax", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
         body: JSON.stringify({
           faxNumber: providerFax.replace(/\D/g, ""),
           providerName: providerName || "Healthcare Provider",
