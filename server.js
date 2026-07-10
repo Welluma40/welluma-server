@@ -1,11 +1,69 @@
 const express = require('express');
 const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.post('/analyze', async (req, res) => {
+// ── AUTH MIDDLEWARE ─────────────────────────────────────────────────────────
+// Verifies the Supabase session JWT sent from the app in the Authorization
+// header. Rejects the request before any downstream API (Anthropic, Resend,
+// Documo) is called if the token is missing, malformed, or invalid.
+const supabaseAuth = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
+
+async function requireAuth(req, res, next) {
+  const authHeader = req.headers.authorization || '';
+  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+
+  if (!token) {
+    return res.status(401).json({ error: 'Missing or malformed Authorization header.' });
+  }
+
+  try {
+    const { data, error } = await supabaseAuth.auth.getUser(token);
+    if (error || !data?.user) {
+      return res.status(401).json({ error: 'Invalid or expired session.' });
+    }
+    req.user = data.user; // available to downstream handlers if needed
+    next();
+  } catch (e) {
+    console.error('Auth check failed:', e.message);
+    return res.status(401).json({ error: 'Authentication check failed.' });
+  }
+}
+
+// == ADMIN CLIENT ==
+// Uses the service role key, which can delete auth users. Only ever used
+// server-side, inside routes protected by requireAuth, so a user can only
+// ever delete their own account.
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+// == DELETE ACCOUNT ==
+// The client deletes visits/providers/profiles rows first, then calls this
+// to remove the actual Supabase Auth user, which requires the service role
+// key and can never be done from the client app itself.
+app.post('/delete-account', requireAuth, async (req, res) => {
+  try {
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(req.user.id);
+    if (error) {
+      console.error('Delete account error:', error.message);
+      return res.status(500).json({ error: error.message });
+    }
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Delete account error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/analyze', requireAuth, async (req, res) => {
   const { transcript } = req.body;
   
   try {
@@ -168,7 +226,7 @@ Transcript: ${transcript}`
 
 
 // ── SEND SUMMARY EMAIL ─────────────────────────────────────────────────────
-app.post('/send-summary-email', async (req, res) => {
+app.post('/send-summary-email', requireAuth, async (req, res) => {
   try {
     const { to, providerName, visitDate, summary, recommendations, medications, followUp } = req.body;
     const { Resend } = require('resend');
@@ -232,7 +290,7 @@ app.post('/send-summary-email', async (req, res) => {
 });
 
 // ── SEND SUMMARY FAX ───────────────────────────────────────────────────────
-app.post('/send-summary-fax', async (req, res) => {
+app.post('/send-summary-fax', requireAuth, async (req, res) => {
   try {
     const { faxNumber, providerName, visitDate, summary, recommendations, medications, followUp, patientName, patientEmail, patientDOB, patientPhone } = req.body;
     const DOCUMO_API_KEY = process.env.DOCUMO_API_KEY;

@@ -215,9 +215,10 @@ Shared via Welluma Health — wellumahealth.com
     if (!providerEmail) { alert("Please enter the provider's email address."); return; }
     setSending(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(process.env.REACT_APP_API_URL + "/send-summary-email", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
         body: JSON.stringify({
           to: providerEmail,
           providerName: providerName || "Healthcare Provider",
@@ -238,9 +239,10 @@ Shared via Welluma Health — wellumahealth.com
     if (!providerFax) { alert("Please enter the provider's fax number."); return; }
     setSending(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(process.env.REACT_APP_API_URL + "/send-summary-fax", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session?.access_token}` },
         body: JSON.stringify({
           faxNumber: providerFax.replace(/\D/g, ""),
           providerName: providerName || "Healthcare Provider",
@@ -969,7 +971,6 @@ function App() {
         const visitData = {
           user_id: user.id,
           provider_id: selectedProvider?.id || null,
-          transcript: text,
           summary: r.summary,
           recommendations: r.recommendations || [],
           medications: r.medications || [],
@@ -1327,6 +1328,14 @@ function App() {
                     await supabase.from("visits").delete().eq("user_id", user.id);
                     await supabase.from("providers").delete().eq("user_id", user.id);
                     await supabase.from("profiles").delete().eq("id", user.id);
+
+                    const { data: { session } } = await supabase.auth.getSession();
+                    const res = await fetch(process.env.REACT_APP_API_URL + "/delete-account", {
+                      method: "POST",
+                      headers: { "Authorization": `Bearer ${session?.access_token}` },
+                    });
+                    if (!res.ok) throw new Error("Failed to delete account");
+
                     await supabase.auth.signOut();
                     alert("Your account and all data have been permanently deleted.");
                   } catch(e) {
