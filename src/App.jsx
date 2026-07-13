@@ -227,6 +227,8 @@ Shared via Welluma Health — wellumahealth.com
           recommendations: visit.recommendations || [],
           medications: visit.medications || [],
           followUp: visit.follow_up || "None specified",
+          patientName: visit.patient_name || "",
+          patientDOB: patientDOB || "",
         }),
       });
       if (res.ok) { setSent(true); }
@@ -311,12 +313,16 @@ Shared via Welluma Health — wellumahealth.com
               <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Provider Name (optional)</label>
               <input value={providerName} onChange={e => setProviderName(e.target.value)} placeholder="Dr. Smith" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
             </div>
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 12 }}>
               <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Provider Email *</label>
               <input value={providerEmail} onChange={e => setProviderEmail(e.target.value)} placeholder="provider@clinic.ca" type="email" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
             </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Patient Date of Birth *</label>
+              <input value={patientDOB} onChange={e => setPatientDOB(e.target.value)} placeholder="YYYY-MM-DD" type="date" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
+            </div>
             <div style={{ background: C.amberLight, borderRadius: 8, padding: "10px 12px", marginBottom: 20, border: `1px solid rgba(186,117,23,0.2)` }}>
-              <p style={{ margin: 0, fontSize: 12, color: C.amber, lineHeight: 1.5 }}>⚠️ This summary is AI-generated. Please review for accuracy before sending. Shared at patient's request.</p>
+              <p style={{ margin: 0, fontSize: 12, color: C.amber, lineHeight: 1.5 }}>⚠️ This summary is AI-generated. Please review for accuracy before sending. Your DOB will be included so your provider can identify you.</p>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <Btn outline color={C.gray600} onClick={() => setMode("menu")} style={{ flex: 1 }}>Back</Btn>
