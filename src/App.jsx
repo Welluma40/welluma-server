@@ -686,7 +686,6 @@ function scheduleNotification(followUpText, visitId) {
 // ── MAIN APP ───────────────────────────────────────────────────────────────
 const TABS = ["Record", "Summary", "Local Support", "History", "Settings"];
 
-export default 
 function ResourcesTab({ mayoLinks, result, onGoRecord, apiUrl }) {
   const [city, setCity] = useState("");
   const [searching, setSearching] = useState(false);
@@ -1352,7 +1351,7 @@ function App() {
               }} style={{ width: "100%", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 14, color: C.red, fontFamily: "inherit", textAlign: "left", fontWeight: 500 }}>Delete My Account & All Data</button>
             </div>
 
-            <p style={{ textAlign: "center", fontSize: 12, color: C.gray400 }}>Welluma Health Inc. · Version 1.1</p>
+            <p style={{ textAlign: "center", fontSize: 12, color: C.gray400 }}>Welluma Health Inc. · Version 1.16</p>
             <p style={{ textAlign: "center", fontSize: 11, color: C.gray200, marginTop: 4 }}>Created by a Nurse Practitioner 🩺</p>
           </div>
         )}
@@ -1370,3 +1369,5 @@ function App() {
     </div>
   );
 }
+
+export default App;
