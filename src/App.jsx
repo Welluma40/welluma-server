@@ -684,7 +684,7 @@ function scheduleNotification(followUpText, visitId) {
 }
 
 // ── MAIN APP ───────────────────────────────────────────────────────────────
-const TABS = ["Record", "Summary", "Local Support", "History", "Settings"];
+const TABS = ["Record", "Summary", "Resources", "History", "Settings"];
 
 function ResourcesTab({ mayoLinks, result, onGoRecord, apiUrl }) {
   const [city, setCity] = useState("");
