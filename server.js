@@ -404,8 +404,16 @@ privacy@wellumahealth.com
     });
 
     if (!response.ok) {
-      const err = await response.json();
-      return res.status(500).json({ error: err.message || 'Fax failed' });
+      const errText = await response.text();
+      console.error('Documo API error:', response.status, errText);
+      let errMessage = 'Fax failed';
+      try {
+        const errJson = JSON.parse(errText);
+        errMessage = errJson.message || errJson.error || errText;
+      } catch (parseErr) {
+        errMessage = errText || errMessage;
+      }
+      return res.status(500).json({ error: errMessage });
     }
     res.json({ success: true });
   } catch (error) {
