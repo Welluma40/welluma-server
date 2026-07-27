@@ -301,10 +301,6 @@ app.post('/send-summary-email', requireAuth, async (req, res) => {
 app.post('/send-summary-fax', requireAuth, async (req, res) => {
   try {
     const { faxNumber, providerName, visitDate, summary, recommendations, medications, followUp, patientName, patientEmail, patientDOB, patientPhone } = req.body;
-    const DOCUMO_API_KEY = process.env.DOCUMO_API_KEY;
-
-    if (!DOCUMO_API_KEY) return res.status(500).json({ error: 'Fax service not configured yet.' });
-
     const recText = (recommendations || []).map((r, i) => `${i+1}. ${r}`).join('\n');
     const medText = medications && medications.length > 0 ? medications.join(', ') : 'None mentioned';
     const sentAt = new Date().toLocaleString('en-CA', { timeZone: 'America/Toronto', dateStyle: 'full', timeStyle: 'short' });
@@ -388,26 +384,43 @@ Shared via Welluma Health — wellumahealth.com
 privacy@wellumahealth.com
 ================================================================================`;
 
-    const response = await fetch('https://api.documo.com/v1/faxes', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${Buffer.from(DOCUMO_API_KEY + ':').toString('base64')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        to: faxNumber,
-        from: process.env.DOCUMO_FAX_NUMBER || '+17055550100',
-        subject: `CONFIDENTIAL — Patient Visit Summary — ${visitDate}`,
-        coverPage: false,
-        documents: [{ content: Buffer.from(faxContent).toString('base64'), contentType: 'text/plain' }],
-      }),
+    const SRFAX_ACCESS_ID = process.env.SRFAX_ACCESS_ID;
+    const SRFAX_ACCESS_PWD = process.env.SRFAX_ACCESS_PWD;
+    const SRFAX_FAX_NUMBER = process.env.SRFAX_FAX_NUMBER;
+
+    if (!SRFAX_ACCESS_ID || !SRFAX_ACCESS_PWD || !SRFAX_FAX_NUMBER) {
+      return res.status(500).json({ error: 'Fax service not configured yet.' });
+    }
+
+    const normalizedFaxNumber = faxNumber.replace(/[^0-9]/g, '');
+    const toFaxNumber = normalizedFaxNumber.length === 10 ? '1' + normalizedFaxNumber : normalizedFaxNumber;
+
+    const srFaxParams = new URLSearchParams({
+      action: 'Queue_Fax',
+      access_id: SRFAX_ACCESS_ID,
+      access_pwd: SRFAX_ACCESS_PWD,
+      sCallerID: SRFAX_FAX_NUMBER,
+      sSenderEmail: 'support@wellumahealth.com',
+      sFaxType: 'SINGLE',
+      sToFaxNumber: toFaxNumber,
+      sResponseFormat: 'JSON',
+      sCPSubject: `CONFIDENTIAL — Patient Visit Summary — ${visitDate}`,
+      sFileName_1: 'VisitSummary.txt',
+      sFileContent_1: Buffer.from(faxContent).toString('base64'),
     });
 
-    if (!response.ok) {
-      const err = await response.json();
-      return res.status(500).json({ error: err.message || 'Fax failed' });
+    const response = await fetch('https://secure.srfax.com/SRF_SecWebSvc.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: srFaxParams.toString(),
+    });
+
+    const result = await response.json();
+
+    if (result.Status !== 'Success') {
+      return res.status(500).json({ error: result.Result || 'Fax failed' });
     }
-    res.json({ success: true });
+    res.json({ success: true, faxDetailsId: result.Result });
   } catch (error) {
     console.error('Fax error:', error.message);
     res.status(500).json({ error: error.message });
