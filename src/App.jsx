@@ -883,14 +883,33 @@ function App() {
   const timerRef = useRef(null);
   const liveTextRef = useRef("");
 
+  const [editName, setEditName] = useState("");
+  const [editDOB, setEditDOB] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
   useEffect(() => {
     if (user?.id) {
       supabase.from("profiles").select("full_name, date_of_birth, phone").eq("id", user.id).single()
-        .then(({ data }) => setProfile(data || null));
+        .then(({ data }) => {
+          setProfile(data || null);
+          setEditName(data?.full_name || "");
+          setEditDOB(data?.date_of_birth || "");
+          setEditPhone(data?.phone || "");
+        });
     } else {
       setProfile(null);
     }
   }, [user]);
+
+  async function handleSaveProfileInfo() {
+    if (!editName || !editDOB || !editPhone) { alert("Please fill in your name, date of birth, and phone number."); return; }
+    setSavingProfile(true);
+    const { error } = await supabase.from("profiles").update({ full_name: editName, date_of_birth: editDOB, phone: editPhone }).eq("id", user.id);
+    if (error) { alert("Failed to save. Please try again."); }
+    else { setProfile({ full_name: editName, date_of_birth: editDOB, phone: editPhone }); alert("Your information has been saved."); }
+    setSavingProfile(false);
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1311,6 +1330,26 @@ function App() {
                 <p style={{ margin: 0, fontSize: 13, color: C.gray400 }}>{user?.email}</p>
               </div>
               <button onClick={handleSignOut} style={{ width: "100%", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 14, color: C.teal, fontFamily: "inherit", textAlign: "left" }}>Sign Out</button>
+            </div>
+
+            <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: "1rem" }}>
+              <p style={{ margin: 0, padding: "10px 16px", fontSize: 11, fontWeight: 500, color: C.gray400, textTransform: "uppercase", letterSpacing: "1px", background: C.gray50, borderBottom: `1px solid ${C.border}` }}>Your Information</p>
+              <div style={{ padding: "14px 16px" }}>
+                <p style={{ margin: "0 0 10px", fontSize: 12, color: C.gray500, lineHeight: 1.5 }}>Used to identify you when sharing summaries with your provider by email or fax.</p>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Full Name</label>
+                  <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Your name" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Date of Birth</label>
+                  <input value={editDOB} onChange={e => setEditDOB(e.target.value)} type="date" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Phone Number</label>
+                  <input value={editPhone} onChange={e => setEditPhone(e.target.value)} type="tel" placeholder="705-555-0100" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
+                </div>
+                <Btn onClick={handleSaveProfileInfo} disabled={savingProfile} style={{ width: "100%" }}>{savingProfile ? "Saving..." : "Save"}</Btn>
+              </div>
             </div>
 
             <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: "1rem" }}>
