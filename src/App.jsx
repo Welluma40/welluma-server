@@ -168,15 +168,14 @@ function ConsentDialog({ onAccept, onDecline }) {
 }
 
 // ── SHARE DIALOG ───────────────────────────────────────────────────────────
-function ShareDialog({ visit, onClose }) {
+function ShareDialog({ visit, profile, onClose }) {
   const [mode, setMode] = useState("menu"); // menu | email | fax
   const [providerEmail, setProviderEmail] = useState("");
   const [providerFax, setProviderFax] = useState("");
   const [providerName, setProviderName] = useState("");
-  const [patientDOB, setPatientDOB] = useState("");
-  const [patientPhone, setPatientPhone] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const profileComplete = !!(profile?.full_name && profile?.date_of_birth && profile?.phone);
 
   const shareText = `
 WELLUMA VISIT SUMMARY
@@ -213,6 +212,7 @@ Shared via Welluma Health — wellumahealth.com
 
   const handleEmailSend = async () => {
     if (!providerEmail) { alert("Please enter the provider's email address."); return; }
+    if (!profileComplete) { alert("Please complete your name, date of birth, and phone number in Settings before sharing."); return; }
     setSending(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -227,8 +227,8 @@ Shared via Welluma Health — wellumahealth.com
           recommendations: visit.recommendations || [],
           medications: visit.medications || [],
           followUp: visit.follow_up || "None specified",
-          patientName: visit.patient_name || "",
-          patientDOB: patientDOB || "",
+          patientName: profile?.full_name || "",
+          patientDOB: profile?.date_of_birth || "",
         }),
       });
       if (res.ok) { setSent(true); }
@@ -239,6 +239,7 @@ Shared via Welluma Health — wellumahealth.com
 
   const handleFaxSend = async () => {
     if (!providerFax) { alert("Please enter the provider's fax number."); return; }
+    if (!profileComplete) { alert("Please complete your name, date of birth, and phone number in Settings before sharing."); return; }
     setSending(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -253,10 +254,10 @@ Shared via Welluma Health — wellumahealth.com
           recommendations: visit.recommendations || [],
           medications: visit.medications || [],
           followUp: visit.follow_up || "None specified",
-          patientName: visit.patient_name || "",
+          patientName: profile?.full_name || "",
           patientEmail: visit.patient_email || "",
-          patientDOB: patientDOB || "",
-          patientPhone: patientPhone || "",
+          patientDOB: profile?.date_of_birth || "",
+          patientPhone: profile?.phone || "",
         }),
       });
       if (res.ok) { setSent(true); }
@@ -317,12 +318,8 @@ Shared via Welluma Health — wellumahealth.com
               <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Provider Email *</label>
               <input value={providerEmail} onChange={e => setProviderEmail(e.target.value)} placeholder="provider@clinic.ca" type="email" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
             </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Patient Date of Birth *</label>
-              <input value={patientDOB} onChange={e => setPatientDOB(e.target.value)} placeholder="YYYY-MM-DD" type="date" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
-            </div>
             <div style={{ background: C.amberLight, borderRadius: 8, padding: "10px 12px", marginBottom: 20, border: `1px solid rgba(186,117,23,0.2)` }}>
-              <p style={{ margin: 0, fontSize: 12, color: C.amber, lineHeight: 1.5 }}>⚠️ This summary is AI-generated. Please review for accuracy before sending. Your DOB will be included so your provider can identify you.</p>
+              <p style={{ margin: 0, fontSize: 12, color: C.amber, lineHeight: 1.5 }}>⚠️ This summary is AI-generated. Please review for accuracy before sending. Your name and DOB from your profile will be included so your provider can identify you.</p>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <Btn outline color={C.gray600} onClick={() => setMode("menu")} style={{ flex: 1 }}>Back</Btn>
@@ -341,17 +338,8 @@ Shared via Welluma Health — wellumahealth.com
               <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Provider Fax Number *</label>
               <input value={providerFax} onChange={e => setProviderFax(e.target.value)} placeholder="705-555-0100" type="tel" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
             </div>
-            <div style={{ marginBottom: 4, fontSize: 11, fontWeight: 700, color: C.gray500, textTransform: "uppercase", letterSpacing: 1 }}>Your Information (for cover page)</div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Date of Birth *</label>
-              <input value={patientDOB} onChange={e => setPatientDOB(e.target.value)} placeholder="YYYY-MM-DD" type="date" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Phone Number</label>
-              <input value={patientPhone} onChange={e => setPatientPhone(e.target.value)} placeholder="705-555-0100" type="tel" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
-            </div>
             <div style={{ background: C.amberLight, borderRadius: 8, padding: "10px 12px", marginBottom: 20, border: `1px solid rgba(186,117,23,0.2)` }}>
-              <p style={{ margin: 0, fontSize: 12, color: C.amber, lineHeight: 1.5 }}>⚠️ This summary is AI-generated. Please review for accuracy before sending. Your name, DOB, and phone will appear on the fax cover page.</p>
+              <p style={{ margin: 0, fontSize: 12, color: C.amber, lineHeight: 1.5 }}>⚠️ This summary is AI-generated. Please review for accuracy before sending. Your name, DOB, and phone from your profile will appear on the fax cover page.</p>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <Btn outline color={C.gray600} onClick={() => setMode("menu")} style={{ flex: 1 }}>Back</Btn>
@@ -404,6 +392,8 @@ function AuthScreen({ onAuth }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [phone, setPhone] = useState("");
   const [promo, setPromo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -424,12 +414,13 @@ function AuthScreen({ onAuth }) {
       }
     } else {
       if (!ageConfirmed) { setError("Please confirm you are 18 years of age or older."); setLoading(false); return; }
+      if (!name || !dateOfBirth || !phone) { setError("Please enter your full name, date of birth, and phone number."); setLoading(false); return; }
       const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
       if (error) { setError(error.message); }
       else {
         if (data.user) {
-          const { error: profileError } = await supabase.from("profiles").insert({ id: data.user.id, email, full_name: name, promo_code_used: promo || null });
-          if (profileError) console.log("Profile creation error:", profileError.message);
+          const { error: profileError } = await supabase.from("profiles").update({ full_name: name, date_of_birth: dateOfBirth || null, phone: phone || null, promo_code_used: promo || null }).eq("id", data.user.id);
+          if (profileError) console.log("Profile update error:", profileError.message);
           if (promo) {
             const { data: pc } = await supabase.from("promo_codes").select("*").eq("code", promo.toUpperCase()).eq("active", true).single();
             if (pc) {
@@ -485,6 +476,8 @@ function AuthScreen({ onAuth }) {
         </div>
 
         {mode === "signup" && <Input label="Full Name" value={name} onChange={setName} placeholder="Your name" />}
+        {mode === "signup" && <Input label="Date of Birth" type="date" value={dateOfBirth} onChange={setDateOfBirth} placeholder="YYYY-MM-DD" />}
+        {mode === "signup" && <Input label="Phone Number" type="tel" value={phone} onChange={setPhone} placeholder="705-555-0100" />}
         {mode === "signup" && <Input label="Promo Code (optional)" value={promo} onChange={setPromo} placeholder="Enter promo code (optional)" />}
         {mode === "signup" && (<div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}><input type="checkbox" checked={ageConfirmed} onChange={e => setAgeConfirmed(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} /><span style={{ fontSize: 13, color: "#5F5E5A", lineHeight: 1.5 }}>I confirm I am <strong>18 years of age or older</strong></span></div>)}
         <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="your@email.com" />
@@ -684,7 +677,7 @@ function scheduleNotification(followUpText, visitId) {
 }
 
 // ── MAIN APP ───────────────────────────────────────────────────────────────
-const TABS = ["Record", "Summary", "Local Support", "History", "Settings"];
+const TABS = ["Record", "Summary", "Resources", "History", "Settings"];
 
 function ResourcesTab({ mayoLinks, result, onGoRecord, apiUrl }) {
   const [city, setCity] = useState("");
@@ -859,6 +852,7 @@ Respond ONLY with a JSON array, no other text, no markdown backticks:
 
 function App() {
   const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [tab, setTab] = useState(0);
   const [recording, setRecording] = useState(false);
@@ -888,6 +882,34 @@ function App() {
   const recognitionRef = useRef(null);
   const timerRef = useRef(null);
   const liveTextRef = useRef("");
+
+  const [editName, setEditName] = useState("");
+  const [editDOB, setEditDOB] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      supabase.from("profiles").select("full_name, date_of_birth, phone").eq("id", user.id).single()
+        .then(({ data }) => {
+          setProfile(data || null);
+          setEditName(data?.full_name || "");
+          setEditDOB(data?.date_of_birth || "");
+          setEditPhone(data?.phone || "");
+        });
+    } else {
+      setProfile(null);
+    }
+  }, [user]);
+
+  async function handleSaveProfileInfo() {
+    if (!editName || !editDOB || !editPhone) { alert("Please fill in your name, date of birth, and phone number."); return; }
+    setSavingProfile(true);
+    const { error } = await supabase.from("profiles").update({ full_name: editName, date_of_birth: editDOB, phone: editPhone }).eq("id", user.id);
+    if (error) { alert("Failed to save. Please try again."); }
+    else { setProfile({ full_name: editName, date_of_birth: editDOB, phone: editPhone }); alert("Your information has been saved."); }
+    setSavingProfile(false);
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -1050,7 +1072,7 @@ function App() {
     />}
     {showConsent && <ConsentDialog onAccept={() => { setShowConsent(false); proceedWithAnalysis(pendingText); }} onDecline={() => { setShowConsent(false); setPendingText(""); }} />}
       {showProviderPicker && <ProviderPicker userId={user.id} selectedId={selectedProvider?.id} onSelect={setSelectedProvider} onClose={() => setShowProviderPicker(false)} />}
-      {showShare && displayVisit && <ShareDialog visit={displayVisit} onClose={() => setShowShare(false)} />}
+      {showShare && displayVisit && <ShareDialog visit={displayVisit} profile={profile} onClose={() => setShowShare(false)} />}
 
       <div style={{ background: C.navy, padding: "1.75rem 1.5rem 1.25rem", borderRadius: "0 0 24px 24px", marginBottom: "1.25rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1.25rem" }}>
@@ -1308,6 +1330,26 @@ function App() {
                 <p style={{ margin: 0, fontSize: 13, color: C.gray400 }}>{user?.email}</p>
               </div>
               <button onClick={handleSignOut} style={{ width: "100%", padding: "14px 16px", background: "none", border: "none", cursor: "pointer", fontSize: 14, color: C.teal, fontFamily: "inherit", textAlign: "left" }}>Sign Out</button>
+            </div>
+
+            <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: "1rem" }}>
+              <p style={{ margin: 0, padding: "10px 16px", fontSize: 11, fontWeight: 500, color: C.gray400, textTransform: "uppercase", letterSpacing: "1px", background: C.gray50, borderBottom: `1px solid ${C.border}` }}>Your Information</p>
+              <div style={{ padding: "14px 16px" }}>
+                <p style={{ margin: "0 0 10px", fontSize: 12, color: C.gray500, lineHeight: 1.5 }}>Used to identify you when sharing summaries with your provider by email or fax.</p>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Full Name</label>
+                  <input value={editName} onChange={e => setEditName(e.target.value)} placeholder="Your name" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Date of Birth</label>
+                  <input value={editDOB} onChange={e => setEditDOB(e.target.value)} type="date" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
+                </div>
+                <div style={{ marginBottom: 12 }}>
+                  <label style={{ fontSize: 13, color: C.gray600, display: "block", marginBottom: 4 }}>Phone Number</label>
+                  <input value={editPhone} onChange={e => setEditPhone(e.target.value)} type="tel" placeholder="705-555-0100" style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${C.gray200}`, fontSize: 14, boxSizing: "border-box" }} />
+                </div>
+                <Btn onClick={handleSaveProfileInfo} disabled={savingProfile} style={{ width: "100%" }}>{savingProfile ? "Saving..." : "Save"}</Btn>
+              </div>
             </div>
 
             <div style={{ background: C.white, borderRadius: 14, border: `1px solid ${C.border}`, overflow: "hidden", marginBottom: "1rem" }}>

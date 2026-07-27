@@ -418,6 +418,7 @@ privacy@wellumahealth.com
     const result = await response.json();
 
     if (result.Status !== 'Success') {
+      console.error('SRFax API error:', result.Result);
       return res.status(500).json({ error: result.Result || 'Fax failed' });
     }
     res.json({ success: true, faxDetailsId: result.Result });
