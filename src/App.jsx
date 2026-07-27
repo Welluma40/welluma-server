@@ -419,8 +419,8 @@ function AuthScreen({ onAuth }) {
       if (error) { setError(error.message); }
       else {
         if (data.user) {
-          const { error: profileError } = await supabase.from("profiles").insert({ id: data.user.id, email, full_name: name, date_of_birth: dateOfBirth || null, phone: phone || null, promo_code_used: promo || null });
-          if (profileError) console.log("Profile creation error:", profileError.message);
+          const { error: profileError } = await supabase.from("profiles").update({ full_name: name, date_of_birth: dateOfBirth || null, phone: phone || null, promo_code_used: promo || null }).eq("id", data.user.id);
+          if (profileError) console.log("Profile update error:", profileError.message);
           if (promo) {
             const { data: pc } = await supabase.from("promo_codes").select("*").eq("code", promo.toUpperCase()).eq("active", true).single();
             if (pc) {
