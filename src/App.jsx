@@ -404,6 +404,8 @@ function AuthScreen({ onAuth }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [phone, setPhone] = useState("");
   const [promo, setPromo] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -424,11 +426,12 @@ function AuthScreen({ onAuth }) {
       }
     } else {
       if (!ageConfirmed) { setError("Please confirm you are 18 years of age or older."); setLoading(false); return; }
+      if (!name || !dateOfBirth || !phone) { setError("Please enter your full name, date of birth, and phone number."); setLoading(false); return; }
       const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
       if (error) { setError(error.message); }
       else {
         if (data.user) {
-          const { error: profileError } = await supabase.from("profiles").insert({ id: data.user.id, email, full_name: name, promo_code_used: promo || null });
+          const { error: profileError } = await supabase.from("profiles").insert({ id: data.user.id, email, full_name: name, date_of_birth: dateOfBirth || null, phone: phone || null, promo_code_used: promo || null });
           if (profileError) console.log("Profile creation error:", profileError.message);
           if (promo) {
             const { data: pc } = await supabase.from("promo_codes").select("*").eq("code", promo.toUpperCase()).eq("active", true).single();
@@ -485,6 +488,8 @@ function AuthScreen({ onAuth }) {
         </div>
 
         {mode === "signup" && <Input label="Full Name" value={name} onChange={setName} placeholder="Your name" />}
+        {mode === "signup" && <Input label="Date of Birth" type="date" value={dateOfBirth} onChange={setDateOfBirth} placeholder="YYYY-MM-DD" />}
+        {mode === "signup" && <Input label="Phone Number" type="tel" value={phone} onChange={setPhone} placeholder="705-555-0100" />}
         {mode === "signup" && <Input label="Promo Code (optional)" value={promo} onChange={setPromo} placeholder="Enter promo code (optional)" />}
         {mode === "signup" && (<div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}><input type="checkbox" checked={ageConfirmed} onChange={e => setAgeConfirmed(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} /><span style={{ fontSize: 13, color: "#5F5E5A", lineHeight: 1.5 }}>I confirm I am <strong>18 years of age or older</strong></span></div>)}
         <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="your@email.com" />
