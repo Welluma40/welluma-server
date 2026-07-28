@@ -387,6 +387,17 @@ function PaywallScreen({ onSubscribe, onRestore, loading }) {
   );
 }
 
+function isAtLeast18(dobString) {
+  if (!dobString) return false;
+  const dob = new Date(dobString);
+  if (isNaN(dob.getTime())) return false;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const m = today.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+  return age >= 18;
+}
+
 function AuthScreen({ onAuth }) {
   const [mode, setMode] = useState("login");
   const [email, setEmail] = useState("");
@@ -399,6 +410,7 @@ function AuthScreen({ onAuth }) {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
 
   async function handleEmailAuth() {
     setLoading(true); setError(""); setMessage("");
@@ -415,19 +427,11 @@ function AuthScreen({ onAuth }) {
     } else {
       if (!ageConfirmed) { setError("Please confirm you are 18 years of age or older."); setLoading(false); return; }
       if (!name || !dateOfBirth || !phone) { setError("Please enter your full name, date of birth, and phone number."); setLoading(false); return; }
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } });
+      if (!isAtLeast18(dateOfBirth)) { setError("You must be 18 years of age or older to create an account."); setLoading(false); return; }
+      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { full_name: name, date_of_birth: dateOfBirth || null, phone: phone || null, promo_code: promo || null, marketing_consent: marketingConsent } } });
       if (error) { setError(error.message); }
       else {
         if (data.user) {
-          const { error: profileError } = await supabase.from("profiles").update({ full_name: name, date_of_birth: dateOfBirth || null, phone: phone || null, promo_code_used: promo || null }).eq("id", data.user.id);
-          if (profileError) console.log("Profile update error:", profileError.message);
-          if (promo) {
-            const { data: pc } = await supabase.from("promo_codes").select("*").eq("code", promo.toUpperCase()).eq("active", true).single();
-            if (pc) {
-              await supabase.from("promo_codes").update({ uses_count: pc.uses_count + 1 }).eq("id", pc.id);
-              await supabase.from("profiles").update({ subscription_status: "promo", trial_end_date: new Date(Date.now() + pc.duration_months * 30 * 24 * 60 * 60 * 1000).toISOString() }).eq("id", data.user.id);
-            }
-          }
           onAuth(data.user);
         } else {
           setMessage("Check your email to confirm your account!");
@@ -480,6 +484,7 @@ function AuthScreen({ onAuth }) {
         {mode === "signup" && <Input label="Phone Number" type="tel" value={phone} onChange={setPhone} placeholder="705-555-0100" />}
         {mode === "signup" && <Input label="Promo Code (optional)" value={promo} onChange={setPromo} placeholder="Enter promo code (optional)" />}
         {mode === "signup" && (<div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}><input type="checkbox" checked={ageConfirmed} onChange={e => setAgeConfirmed(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} /><span style={{ fontSize: 13, color: "#5F5E5A", lineHeight: 1.5 }}>I confirm I am <strong>18 years of age or older</strong></span></div>)}
+        {mode === "signup" && (<div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}><input type="checkbox" checked={marketingConsent} onChange={e => setMarketingConsent(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} /><span style={{ fontSize: 13, color: "#5F5E5A", lineHeight: 1.5 }}>I would like to receive occasional updates and promotions from Welluma (optional)</span></div>)}
         <Input label="Email" type="email" value={email} onChange={setEmail} placeholder="your@email.com" />
         <Input label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" />
         
@@ -866,6 +871,7 @@ function App() {
   const [mode, setMode] = useState("demo");
   const [showConsent, setShowConsent] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [showRecordingConsent, setShowRecordingConsent] = useState(false);
   const [pendingText, setPendingText] = useState("");
   const [selectedProvider, setSelectedProvider] = useState(null);
@@ -887,6 +893,7 @@ function App() {
   const [editDOB, setEditDOB] = useState("");
   const [editPhone, setEditPhone] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+  const [hasSavedProfile, setHasSavedProfile] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
@@ -896,6 +903,7 @@ function App() {
           setEditName(data?.full_name || "");
           setEditDOB(data?.date_of_birth || "");
           setEditPhone(data?.phone || "");
+          setHasSavedProfile(Boolean(data?.full_name && data?.date_of_birth && data?.phone));
         });
     } else {
       setProfile(null);
@@ -903,7 +911,9 @@ function App() {
   }, [user]);
 
   async function handleSaveProfileInfo() {
+    if (hasSavedProfile) { alert("Your information is locked once saved. Email support@wellumahealth.com to make a change."); return; }
     if (!editName || !editDOB || !editPhone) { alert("Please fill in your name, date of birth, and phone number."); return; }
+    if (!isAtLeast18(editDOB)) { alert("You must be 18 years of age or older to use Welluma."); return; }
     setSavingProfile(true);
     const { error } = await supabase.from("profiles").update({ full_name: editName, date_of_birth: editDOB, phone: editPhone }).eq("id", user.id);
     if (error) { alert("Failed to save. Please try again."); }
