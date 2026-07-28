@@ -1070,7 +1070,8 @@ function App() {
   if (authLoading) return <div style={{ background: C.navy, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: C.white }}>Loading...</p></div>;
   if (!user) return <AuthScreen onAuth={setUser} />;
   if (subLoading) return <div style={{ background: "#0B2D56", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}><p style={{ color: "#ffffff" }}>Loading...</p></div>;
-  if (!isSubscribed) return <PaywallScreen onSubscribe={handleSubscribe} onRestore={handleRestore} loading={subLoading} />;
+  const isReviewerAccount = user?.email === "reviewer@wellumahealth.com";
+  if (!isSubscribed && !isReviewerAccount) return <PaywallScreen onSubscribe={handleSubscribe} onRestore={handleRestore} loading={subLoading} />;
 
   const displayVisit = selectedHistoryVisit || currentVisit;
 
