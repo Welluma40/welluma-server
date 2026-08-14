@@ -85,6 +85,14 @@ app.post('/analyze', requireAuth, async (req, res) => {
 - medications: array of strings (just name and dose, e.g. "Lisinopril 10mg daily")
 - followUp: string
 - resources: array of 4-8 objects each with "label" and "url"
+MEDICATION & MEDICAL TERMINOLOGY ACCURACY:
+The transcript comes from speech-to-text and often mishears medication names, dosages, and clinical terms. Before writing your summary:
+- Actively identify likely mis-transcribed medication names using context (e.g., "met for men" → "Metformin", "a torva statin" → "Atorvastatin")
+- Cross-reference partial or garbled drug names against common Canadian-prescribed medications for the condition being discussed
+- If a dosage or frequency sounds phonetically off, infer the clinically sensible correction
+- In the medications array, list your best-corrected interpretation of each medication, not the raw transcript wording
+- If you cannot confidently determine what a medication name should be, include it as transcribed but do not fabricate a plausible-sounding drug name that wasn't indicated
+- Apply the same correction logic to medical/anatomical terms, lab test names, and condition names throughout the summary
 
 CANADIAN LAB VALUES - always use Canadian/SI units in summaries:
 - Blood glucose: mmol/L (normal fasting: 3.9-5.5 mmol/L; diabetes diagnosis: ≥7.0 mmol/L)
