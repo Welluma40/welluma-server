@@ -1,14 +1,144 @@
 const express = require('express');
 const cors = require('cors');
+const multer = require('multer');
 const { createClient } = require('@supabase/supabase-js');
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+const allowedOrigins = (process.env.CORS_ORIGINS || 'capacitor://localhost,http://localhost,https://localhost')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Origin is not allowed.'));
+  },
+}));
+app.use(express.json({ limit: '1mb' }));
+
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', service: 'welluma-api' });
+});
+
+const AZURE_COGNITIVE_RESOURCE = 'https://cognitiveservices.azure.com';
+
+async function getAppServiceManagedIdentityToken() {
+  const endpoint = process.env.IDENTITY_ENDPOINT;
+  const identityHeader = process.env.IDENTITY_HEADER;
+  if (!endpoint || !identityHeader) {
+    throw new Error('Azure App Service managed identity is not available.');
+  }
+  const url = new URL(endpoint);
+  url.searchParams.set('api-version', '2019-08-01');
+  url.searchParams.set('resource', AZURE_COGNITIVE_RESOURCE);
+  const response = await fetch(url, { headers: { 'X-IDENTITY-HEADER': identityHeader } });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.access_token) {
+    throw new Error('Azure managed identity token request failed.');
+  }
+  return payload.access_token;
+}
+
+async function azureAuthorizationHeaders(key, keyHeaderName) {
+  // Production must use the App Service managed identity. A key is accepted
+  // only when the operator has deliberately enabled the local-development
+  // fallback; this prevents an accidental production regression to secrets.
+  if (process.env.ALLOW_AZURE_API_KEYS === 'true') {
+    if (!key) throw new Error('The explicitly enabled Azure API key is missing.');
+    return { [keyHeaderName]: key };
+  }
+  const token = await getAppServiceManagedIdentityToken();
+  return { Authorization: `Bearer ${token}` };
+}
+
+// Audio is held only for the lifetime of this request. It is never written to
+// the server filesystem, database, application logs, or a non-Canadian store.
+const audioUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 100 * 1024 * 1024, files: 1 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype?.startsWith('audio/')) return cb(new Error('Only audio recordings are accepted.'));
+    cb(null, true);
+  },
+});
+
+function requireCanadianAzureConfiguration() {
+  const region = (process.env.AZURE_SPEECH_REGION || '').toLowerCase();
+  if (!['canadacentral', 'canadaeast'].includes(region)) {
+    throw new Error('Canadian Azure Speech region is not configured.');
+  }
+  if (!process.env.AZURE_SPEECH_ENDPOINT) {
+    throw new Error('Azure Speech endpoint is not configured.');
+  }
+}
+
+async function transcribeInCanadianAzure(file) {
+  requireCanadianAzureConfiguration();
+  const endpoint = process.env.AZURE_SPEECH_ENDPOINT.replace(/\/$/, '');
+  const form = new FormData();
+  form.append('audio', new Blob([file.buffer], { type: file.mimetype }), file.originalname || 'welluma-visit.m4a');
+  form.append('definition', JSON.stringify({
+    locales: ['en-CA', 'fr-CA'],
+    diarization: { enabled: true, maxSpeakers: 2 },
+    profanityFilterMode: 'None',
+  }));
+
+  const authHeaders = await azureAuthorizationHeaders(process.env.AZURE_SPEECH_KEY, 'Ocp-Apim-Subscription-Key');
+  const response = await fetch(`${endpoint}/speechtotext/transcriptions:transcribe?api-version=2025-10-15`, {
+    method: 'POST',
+    headers: authHeaders,
+    body: form,
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const safeMessage = payload?.error?.message || payload?.message || `Azure transcription failed (${response.status}).`;
+    throw new Error(safeMessage);
+  }
+  const transcript = (payload.combinedPhrases || []).map((phrase) => phrase.text || '').join('\n').trim();
+  if (!transcript) throw new Error('No speech was detected in the recording.');
+  return transcript;
+}
+
+async function requestSummaryModel(requestBody) {
+  const provider = (process.env.SUMMARY_PROVIDER || 'azure').toLowerCase();
+  if (provider !== 'azure') throw new Error('Only Canadian Azure summary processing is enabled.');
+  const region = (process.env.AZURE_OPENAI_REGION || '').toLowerCase();
+  if (!['canadacentral', 'canadaeast'].includes(region)) {
+    throw new Error('Canadian Azure summary region is not configured.');
+  }
+  const endpoint = (process.env.AZURE_OPENAI_ENDPOINT || '').replace(/\/$/, '');
+  const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
+  if (!endpoint || !deployment) throw new Error('Azure summary service is not configured.');
+
+  const authHeaders = await azureAuthorizationHeaders(process.env.AZURE_OPENAI_KEY, 'api-key');
+  const azureResponse = await fetch(
+    `${endpoint}/openai/deployments/${encodeURIComponent(deployment)}/chat/completions?api-version=2024-10-21`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      body: JSON.stringify({
+        messages: requestBody.messages,
+        max_tokens: requestBody.max_tokens,
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+      }),
+    }
+  );
+  const azurePayload = await azureResponse.json().catch(() => ({}));
+  if (!azureResponse.ok) {
+    throw new Error(azurePayload?.error?.message || `Azure summary generation failed (${azureResponse.status}).`);
+  }
+  const content = azurePayload?.choices?.[0]?.message?.content;
+  if (!content) throw new Error('The Canadian summary service returned no summary.');
+  return new Response(JSON.stringify({ content: [{ text: content }] }), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
 
 // ── AUTH MIDDLEWARE ─────────────────────────────────────────────────────────
 // Verifies the Supabase session JWT sent from the app in the Authorization
-// header. Rejects the request before any downstream API (Anthropic, Resend,
+// header. Rejects the request before any downstream API (Azure, Resend,
 // Documo) is called if the token is missing, malformed, or invalid.
 const supabaseAuth = createClient(
   process.env.SUPABASE_URL,
@@ -35,6 +165,21 @@ async function requireAuth(req, res, next) {
     return res.status(401).json({ error: 'Authentication check failed.' });
   }
 }
+
+// Raw audio replacement for Android's unreliable live SpeechRecognizer.
+// Authentication runs before upload processing and audio is discarded as soon
+// as Azure returns the transcript or an error.
+app.post('/transcribe-audio', requireAuth, audioUpload.single('audio'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No audio recording was supplied.' });
+    const transcript = await transcribeInCanadianAzure(req.file);
+    res.json({ transcript });
+  } catch (error) {
+    console.error('Transcription request failed:', error.message);
+    const status = /not configured/i.test(error.message) ? 503 : 422;
+    res.status(status).json({ error: error.message });
+  }
+});
 
 // == ADMIN CLIENT ==
 // Uses the service role key, which can delete auth users. Only ever used
@@ -65,16 +210,12 @@ app.post('/delete-account', requireAuth, async (req, res) => {
 
 app.post('/analyze', requireAuth, async (req, res) => {
   const { transcript } = req.body;
+  if (!transcript || transcript.trim().length < 30) {
+    return res.status(422).json({ error: 'There was not enough recorded speech to create a reliable visit summary.' });
+  }
   
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
+    const response = await requestSummaryModel({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1500,
         messages: [{
@@ -197,7 +338,6 @@ Return ONLY the JSON object. No markdown, no backticks, no explanation.
 
 Transcript: ${transcript}`
         }]
-      })
     });
     
     const text = await response.text();
@@ -217,7 +357,12 @@ Transcript: ${transcript}`
     const end = content.lastIndexOf('}');
     if (start !== -1 && end !== -1) content = content.slice(start, end + 1);
     
-    const parsed = JSON.parse(content);
+    let parsed;
+    try {
+      parsed = JSON.parse(content);
+    } catch (_parseError) {
+      return res.status(422).json({ error: 'A reliable summary could not be created from this recording. Please review the transcript and try again.' });
+    }
     
     if (parsed.medications) {
       parsed.medications = parsed.medications.map(m =>
@@ -229,6 +374,39 @@ Transcript: ${transcript}`
   } catch (error) {
     console.error('Error:', error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/local-resources', requireAuth, async (req, res) => {
+  const city = String(req.body?.city || '').trim().slice(0, 120);
+  const diagnosis = String(req.body?.diagnosis || '').trim().slice(0, 12000);
+  const recommendations = Array.isArray(req.body?.recommendations) ? req.body.recommendations.slice(0, 20) : [];
+  if (!city || !diagnosis) return res.status(400).json({ error: 'A location and visit summary are required.' });
+
+  const prompt = `You are a Canadian health resource specialist. Return ONLY a JSON object with one key named "resources" containing 6-8 relevant resources.
+Patient location: ${city}
+Visit summary: ${diagnosis}
+Provider recommendations: ${recommendations.join(', ')}
+Include verified local resources when confident, relevant provincial/state resources, national Canadian organizations, and relevant US resources only when the location is in the United States.
+Each resource must contain: name, description, contact, and type (local, provincial, national, or online).
+Never invent an organization, URL, or telephone number. If a specific local service cannot be verified from existing model knowledge, provide a recognized directory or official health-system resource instead.
+Required JSON shape: {"resources":[{"name":"...","description":"...","contact":"...","type":"..."}]}`;
+
+  try {
+    const response = await requestSummaryModel({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1200,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const providerPayload = await response.json();
+    if (providerPayload.error) throw new Error(providerPayload.error.message || 'Resource search failed.');
+    const raw = providerPayload.content?.map((block) => block.text || '').join('').replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+    const resources = Array.isArray(parsed.resources) ? parsed.resources.slice(0, 8) : [];
+    res.json({ resources });
+  } catch (error) {
+    console.error('Local resource request failed:', error.message);
+    res.status(422).json({ error: 'Local resources could not be generated right now. Your visit summary is still available.' });
   }
 });
 
@@ -434,6 +612,17 @@ privacy@wellumahealth.com
     console.error('Fax error:', error.message);
     res.status(500).json({ error: error.message });
   }
+});
+
+app.use((error, _req, res, _next) => {
+  if (error instanceof multer.MulterError || /Only audio recordings/.test(error.message || '')) {
+    const message = error.code === 'LIMIT_FILE_SIZE'
+      ? 'The recording is too large to upload safely.'
+      : error.message;
+    return res.status(413).json({ error: message });
+  }
+  console.error('Unhandled request error:', error.message);
+  res.status(500).json({ error: 'The request could not be completed.' });
 });
 
 const PORT = process.env.PORT || 3001;
